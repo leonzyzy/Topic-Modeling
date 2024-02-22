@@ -40,18 +40,6 @@ cluster_labels = cluster.fit_predict(embedding_proj)
 text_group = pd.DataFrame(text)
 text_group['label'] = cluster_labels
 
-
-# Preprocess text data
-preprocessed_texts = []
-for t in text:
-    t = re.sub(r'[^\w\s]','',t)
-    tokens = word_tokenize(t)
-    clean_tokens = [token.lower() for token in tokens if token not in string.punctuation]
-    filtered_tokens = [token for token in clean_tokens if token not in stop_words]
-    lemmatized_tokens = [lemmatizer.lemmatize(token) for token in filtered_tokens]
-    preprocessed_texts.append(' '.join(lemmatized_tokens))
-
-
 # for each label perform tfidf
 for i in range(0, len(text_group['label'].unique())):
     label = text_group[text_group['label'] == i]
