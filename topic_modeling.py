@@ -66,7 +66,6 @@ def optimal_k(inputs, max_k):
 # define a function to assign labels to clusters
 def assign_labels(x, model, max_k):
     # embedding
-    model = SentenceTransformer('distilbert-base-nli-mean-tokens')
     embeddings = model.encode(x, convert_to_numpy=True, show_progress_bar=True)
     
     # perform UMAP
