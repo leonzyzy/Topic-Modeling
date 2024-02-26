@@ -56,7 +56,7 @@ def optimal_k(inputs, max_k):
         optimal_dist.append(inter_cluster_distances[-1] - intra_cluster_distances[-1])
     
     # use kneedle algorithm to find the optimal number of clusters
-    kn = KneeLocator(range(2, 10 + 1), 
+    kn = KneeLocator(range(2, max_k + 1), 
                      optimal_dist, 
                      curve='concave', 
                      direction='increasing')
