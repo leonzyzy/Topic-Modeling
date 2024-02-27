@@ -27,10 +27,10 @@ stop_words = set(stopwords.words('english'))
 model = SentenceTransformer('distilbert-base-nli-mean-tokens')
 
 # import data
-df = pd.read_csv('tripadvisor_hotel_reviews.csv')
+df = pd.read_csv('df_file.csv')
 
 # random sample of 1000 reviews
-df = np.array(df.sample(50)['Review']).tolist()
+df = np.array(df['Text']).tolist()
 
 # define a function to optimize the number of clusters
 def optimal_k(inputs, max_k):
@@ -56,7 +56,7 @@ def optimal_k(inputs, max_k):
         optimal_dist.append(inter_cluster_distances[-1] - intra_cluster_distances[-1])
     
     # use kneedle algorithm to find the optimal number of clusters
-    kn = KneeLocator(range(2, max_k + 1), 
+    kn = KneeLocator(range(2, 10 + 1), 
                      optimal_dist, 
                      curve='concave', 
                      direction='increasing')
@@ -66,10 +66,11 @@ def optimal_k(inputs, max_k):
 # define a function to assign labels to clusters
 def assign_labels(x, model, max_k):
     # embedding
+    model = SentenceTransformer('distilbert-base-nli-mean-tokens')
     embeddings = model.encode(x, convert_to_numpy=True, show_progress_bar=True)
     
     # perform UMAP
-    map = umap.UMAP(n_components=5, n_neighbors=12, random_state=528)
+    map = umap.UMAP(n_components=8, n_neighbors=12, random_state=42)
     embeddings_proj = map.fit_transform(embeddings)
     
     # find the optimal number of clusters
@@ -81,8 +82,10 @@ def assign_labels(x, model, max_k):
     return text_group
 
 text_group = assign_labels(df, model, 10)
+
     
-    
+
+
 # find topic for each cluster using tfidf
 # for each label perform tfidf
 for i in range(0, len(text_group['label'].unique())):
@@ -109,4 +112,34 @@ for i in range(0, len(text_group['label'].unique())):
     tfidf_matrix['count'] = tfidf_matrix.sum(axis=1)
     tfidf_matrix = tfidf_matrix.sort_values(by ='count', ascending=False)[:10] 
     print(tfidf_matrix['count'].head(5))
+
+# plot a bar chart for each topic within a cluster, plt if horizontal bar chart
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set(style="whitegrid")
+for i in range(0, len(text_group['label'].unique())):
+    label = text_group[text_group['label'] == i]
+    label_text = label['text']
     
+    # Preprocess text data
+    preprocessed_texts = []
+    for t in label_text:
+        t = re.sub(r'[^\w\s]','',t)
+        tokens = word_tokenize(t)
+        clean_tokens = [token.lower() for token in tokens if token not in string.punctuation]
+        filtered_tokens = [token for token in clean_tokens if token not in stop_words]
+        lemmatized_tokens = [lemmatizer.lemmatize(token) for token in filtered_tokens]
+        preprocessed_texts.append(' '.join(lemmatized_tokens))
+
+    
+    vectorizer = TfidfVectorizer() 
+    vectors = vectorizer.fit_transform(preprocessed_texts)
+    tf_idf = pd.DataFrame(vectors.todense()) 
+    tf_idf.columns = vectorizer.get_feature_names_out()
+    tfidf_matrix = tf_idf.T
+    tfidf_matrix.columns = ['response'+ str(i) for i in range(1, len(tfidf_matrix.columns)+1)]
+    tfidf_matrix['count'] = tfidf_matrix.sum(axis=1)
+    tfidf_matrix = tfidf_matrix.sort_values(by ='count', ascending=False)[:10] 
+    tfidf_matrix['count'].plot(kind='barh')
+    plt.title('Topic ' + str(i))
+    plt.show()
