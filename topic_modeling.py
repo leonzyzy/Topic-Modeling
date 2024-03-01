@@ -4,7 +4,9 @@ import re
 import string
 import nltk
 import hdbscan
+import seaborn as sns
 import umap.umap_ as umap
+import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -13,8 +15,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from kneed import KneeLocator
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 # Stopword removal, converting uppercase into lower case, and lemmatization
