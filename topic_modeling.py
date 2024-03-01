@@ -13,6 +13,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from kneed import KneeLocator
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 # Stopword removal, converting uppercase into lower case, and lemmatization
 nltk.download('punkt')
@@ -83,14 +86,26 @@ def assign_labels(x, model, max_k):
 
 text_group = assign_labels(df, model, 10)
 
+
+# Function to find duplicate words between two dictionaries
+def find_duplicates(dict1, dict2):
+    # Extracting the keys (words) from the dictionaries
+    words_dict1 = set(dict1.keys())
+    words_dict2 = set(dict2.keys())
     
+    # Finding the common words (intersection)
+    common_words = words_dict1.intersection(words_dict2)
+    
+    return list(common_words)
 
 
-# find topic for each cluster using tfidf
-# for each label perform tfidf
+# create a dic to count frequency of words in each cluster
+words_dic = []
+
 for i in range(0, len(text_group['label'].unique())):
     label = text_group[text_group['label'] == i]
     label_text = label['text']
+    topic = {}
     
     # Preprocess text data
     preprocessed_texts = []
@@ -110,36 +125,32 @@ for i in range(0, len(text_group['label'].unique())):
     tfidf_matrix = tf_idf.T
     tfidf_matrix.columns = ['response'+ str(i) for i in range(1, len(tfidf_matrix.columns)+1)]
     tfidf_matrix['count'] = tfidf_matrix.sum(axis=1)
-    tfidf_matrix = tfidf_matrix.sort_values(by ='count', ascending=False)[:10] 
-    print(tfidf_matrix['count'].head(5))
+    tfidf_matrix = tfidf_matrix.sort_values(by ='count', ascending=False)[:20] 
 
-# plot a bar chart for each topic within a cluster, plt if horizontal bar chart
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set(style="whitegrid")
-for i in range(0, len(text_group['label'].unique())):
-    label = text_group[text_group['label'] == i]
-    label_text = label['text']
-    
-    # Preprocess text data
-    preprocessed_texts = []
-    for t in label_text:
-        t = re.sub(r'[^\w\s]','',t)
-        tokens = word_tokenize(t)
-        clean_tokens = [token.lower() for token in tokens if token not in string.punctuation]
-        filtered_tokens = [token for token in clean_tokens if token not in stop_words]
-        lemmatized_tokens = [lemmatizer.lemmatize(token) for token in filtered_tokens]
-        preprocessed_texts.append(' '.join(lemmatized_tokens))
+    words_dic.append(tfidf_matrix['count'].to_dict())
 
-    
-    vectorizer = TfidfVectorizer() 
-    vectors = vectorizer.fit_transform(preprocessed_texts)
-    tf_idf = pd.DataFrame(vectors.todense()) 
-    tf_idf.columns = vectorizer.get_feature_names_out()
-    tfidf_matrix = tf_idf.T
-    tfidf_matrix.columns = ['response'+ str(i) for i in range(1, len(tfidf_matrix.columns)+1)]
-    tfidf_matrix['count'] = tfidf_matrix.sum(axis=1)
-    tfidf_matrix = tfidf_matrix.sort_values(by ='count', ascending=False)[:10] 
-    tfidf_matrix['count'].plot(kind='barh')
+
+duplicate_words = []
+for i in range(len(words_dic)-1):
+    for j in range(i+1, len(words_dic)):
+        common_words = find_duplicates(words_dic[i], words_dic[j])
+        duplicate_words.append(common_words)
+
+# Removing duplicates from the list
+duplicate_words = list(set([item for sublist in duplicate_words for item in sublist]))
+
+# remove keys if they are in duplicate_words
+for i in range(0, len(words_dic)):
+    for word in duplicate_words:
+        if word in words_dic[i]:
+            del words_dic[i][word]    
+
+    # only keep top 10 keys
+    words_dic[i] = dict(sorted(words_dic[i].items(), key=lambda item: item[1], reverse=True)[:10])
+
+
+# plot a bar chart for each topic within word_dic, plot it horizontally
+for i in range(0, len(words_dic)):
+    plt.barh(list(words_dic[i].keys()), list(words_dic[i].values()))
     plt.title('Topic ' + str(i))
     plt.show()
