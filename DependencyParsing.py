@@ -42,6 +42,34 @@ def dependency_parse(pos_tags):
     
     return deps
 
+# Tree Node
+class TreeNode:
+    def __init__(self, value):
+        self.value = value
+        self.children = []
+
+    def add_child(self, child_node):
+        self.children.append(child_node)
+
+    def __repr__(self):
+        return f"TreeNode({self.value})"
+
+def build_tree(tokens, dependencies):
+    token_to_node = {token: TreeNode(token) for token in tokens}
+    root = None
+    for head, dep, child in dependencies:
+        head_node = token_to_node[head]
+        child_node = token_to_node[child]
+        head_node.add_child(child_node)
+        if dep == "subj":
+            root = head_node
+    return root or token_to_node[tokens[0]]
+
+def print_tree(node, level=0):
+    print('  ' * level + repr(node))
+    for child in node.children:
+        print_tree(child, level + 1)
+
 # Process a sample sentence
 sentence = "A man with a hat is walking in the park."
 tokens, pos_tags = process_sentence(sentence)
@@ -50,4 +78,7 @@ print("Dependencies:")
 for dep in dependencies:
     print(f"{dep[0]} -> {dep[1]} -> {dep[2]}")
 
-        
+# Build and print the dependency tree
+tree = build_tree(tokens, dependencies)
+print("\nDependency Tree:")
+print_tree(tree)
