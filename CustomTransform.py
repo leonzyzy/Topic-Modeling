@@ -6,6 +6,7 @@ class DataTransformer:
     def __init__(self):
         self.transform_params = {}  # Store transformation details for each column
         self.encoders = {}          # Store encoders or scalers for columns
+        self.means = {}             # Store mean values for columns
 
     def fit_transform(self, train_set, column_name):
         """
@@ -38,14 +39,22 @@ class DataTransformer:
                 self.encoders[col] = ohe
 
             elif transform_type == "standardize":
+                # Fill missing values with column mean before scaling
+                col_mean = transformed_df[col].mean()
+                transformed_df[col].fillna(col_mean, inplace=True)
                 scaler = StandardScaler()
-                transformed_df[col] = scaler.fit_transform(transformed_df[[col]].fillna(0))
+                transformed_df[col] = scaler.fit_transform(transformed_df[[col]])
                 self.encoders[col] = scaler
+                self.means[col] = col_mean
 
             elif transform_type == "normalize":
+                # Fill missing values with column mean before scaling
+                col_mean = transformed_df[col].mean()
+                transformed_df[col].fillna(col_mean, inplace=True)
                 scaler = MinMaxScaler()
-                transformed_df[col] = scaler.fit_transform(transformed_df[[col]].fillna(0))
+                transformed_df[col] = scaler.fit_transform(transformed_df[[col]])
                 self.encoders[col] = scaler
+                self.means[col] = col_mean
 
             elif transform_type == "discretize":
                 discretizer = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='quantile')
@@ -90,16 +99,26 @@ class DataTransformer:
                 transformed_df = pd.concat([transformed_df.drop(columns=[col]), ohe_df], axis=1)
 
             elif transform_type == "standardize":
+                # Use train mean to fill missing values
+                col_mean = self.means.get(col)
+                if col_mean is None:
+                    raise ValueError(f"StandardScaler for column '{col}' not fitted.")
+                transformed_df[col].fillna(col_mean, inplace=True)
                 scaler = self.encoders.get(col)
                 if not scaler:
                     raise ValueError(f"StandardScaler for column '{col}' not fitted.")
-                transformed_df[col] = scaler.transform(transformed_df[[col]].fillna(0))
+                transformed_df[col] = scaler.transform(transformed_df[[col]])
 
             elif transform_type == "normalize":
+                # Use train mean to fill missing values
+                col_mean = self.means.get(col)
+                if col_mean is None:
+                    raise ValueError(f"MinMaxScaler for column '{col}' not fitted.")
+                transformed_df[col].fillna(col_mean, inplace=True)
                 scaler = self.encoders.get(col)
                 if not scaler:
                     raise ValueError(f"MinMaxScaler for column '{col}' not fitted.")
-                transformed_df[col] = scaler.transform(transformed_df[[col]].fillna(0))
+                transformed_df[col] = scaler.transform(transformed_df[[col]])
 
             elif transform_type == "discretize":
                 discretizer = self.encoders.get(col)
