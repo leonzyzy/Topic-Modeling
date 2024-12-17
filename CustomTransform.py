@@ -21,6 +21,20 @@ class DataTransformer:
         """
         transformed_df = train_set.copy()
 
+        # Apply transformations based on column_name and drop 'timestamp_decompose' and 'timestamp_encode' columns
+        columns_to_drop = []
+        
+        for col, transform_type in column_name.items():
+            if transform_type == 'timestamp_decompose':
+                transformed_df = pd.concat([transformed_df, self.timestamp_decompose(transformed_df[col])], axis=1)
+                columns_to_drop.append(col)  # Drop the original timestamp column
+            elif transform_type == 'timestamp_encode':
+                transformed_df = pd.concat([transformed_df, self.timestamp_encode(transformed_df[col])], axis=1)
+                columns_to_drop.append(col)  # Drop the original timestamp column
+
+        # Drop timestamp columns after transformation
+        transformed_df.drop(columns=columns_to_drop, inplace=True)
+
         for col, transform_type in column_name.items():
             if transform_type == "no_transform":
                 continue
