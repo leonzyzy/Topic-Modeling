@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler, MinMaxScaler
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler, MinMaxScaler, KBinsDiscretizer
 
 class DataTransformer:
     def __init__(self):
@@ -46,6 +46,11 @@ class DataTransformer:
                 scaler = MinMaxScaler()
                 transformed_df[col] = scaler.fit_transform(transformed_df[[col]].fillna(0))
                 self.encoders[col] = scaler
+
+            elif transform_type == "discretize":
+                discretizer = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='quantile')
+                transformed_df[col] = discretizer.fit_transform(transformed_df[[col]].fillna(0)).astype(int)
+                self.encoders[col] = discretizer
 
             else:
                 raise ValueError(f"Unknown transformation: {transform_type}")
@@ -95,6 +100,12 @@ class DataTransformer:
                 if not scaler:
                     raise ValueError(f"MinMaxScaler for column '{col}' not fitted.")
                 transformed_df[col] = scaler.transform(transformed_df[[col]].fillna(0))
+
+            elif transform_type == "discretize":
+                discretizer = self.encoders.get(col)
+                if not discretizer:
+                    raise ValueError(f"Discretizer for column '{col}' not fitted.")
+                transformed_df[col] = discretizer.transform(transformed_df[[col]].fillna(0)).astype(int)
 
             else:
                 raise ValueError(f"Unknown transformation: {transform_type}")
