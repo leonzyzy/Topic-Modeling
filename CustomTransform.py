@@ -2,151 +2,112 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler, MinMaxScaler, KBinsDiscretizer
 
-class ColumnTransformer:
-    def __init__(self, transformations):
-        """
-        Initialize with a dictionary of column transformations.
-        :param transformations: dict, key=column_name, value=transformation type
-               Supported types: "no_transform", "label_encode", "onehot_encode", "standarize", "normalize", "discretize"
-        """
-        self.transformations = transformations
-        self.encoders = {}
+class DataTransformer:
+    def __init__(self):
+        self.encoders = {}  # To store transformers for each column
         self.scalers = {}
+        self.column_strategy = {}  # To track transformation strategy
 
-    def fit_transform(self, trainset, column_name):
+    def fit_transform(self, train, column_name):
         """
-        Fit and transform the specified column in the trainset.
-        :param trainset: pd.DataFrame, the training dataset
-        :param column_name: str, the column to be transformed
-        :return: Transformed trainset with the specified column
+        Fit and transform the train data based on the specified transformation type.
+        Args:
+            train (pd.DataFrame): The training dataset.
+            column_name (dict): Dictionary mapping column names to transformation types.
+        Returns:
+            pd.DataFrame: Transformed train data.
         """
-        if column_name not in trainset.columns:
-            raise ValueError(f"Column '{column_name}' not found in the dataset.")
+        self.column_strategy = column_name  # Save the strategies for use in transform
+        train_transformed = train.copy()
 
-        transformation = self.transformations.get(column_name, "no_transform")
-        
-        if transformation == "no_transform":
-            # Do nothing
-            return trainset
+        for col, strategy in column_name.items():
+            if strategy == "no_transform":
+                continue  # No transformation applied
 
-        elif transformation == "label_encode":
-            le = LabelEncoder()
-            trainset[column_name] = le.fit_transform(trainset[column_name].astype(str))
-            self.encoders[column_name] = le
+            elif strategy == "label_encode":
+                le = LabelEncoder()
+                train_transformed[col] = le.fit_transform(train[col])
+                self.encoders[col] = le  # Save encoder
 
-        elif transformation == "onehot_encode":
-            ohe = OneHotEncoder(sparse=False, drop='first')  # drop_first to avoid dummy variable trap
-            transformed = ohe.fit_transform(trainset[[column_name]])
-            transformed_df = pd.DataFrame(transformed, 
-                                          columns=[f"{column_name}_{i}" for i in range(transformed.shape[1])])
-            self.encoders[column_name] = ohe
-            trainset = trainset.drop(column_name, axis=1).reset_index(drop=True)
-            trainset = pd.concat([trainset, transformed_df], axis=1)
+            elif strategy == "onehot_encode":
+                ohe = OneHotEncoder(sparse=False, drop='first')
+                encoded = ohe.fit_transform(train[[col]])
+                col_names = [f"{col}_{cat}" for cat in ohe.categories_[0][1:]]
+                onehot_df = pd.DataFrame(encoded, columns=col_names, index=train.index)
+                train_transformed = train_transformed.drop(columns=[col])
+                train_transformed = pd.concat([train_transformed, onehot_df], axis=1)
+                self.encoders[col] = ohe
 
-        elif transformation == "standarize":
-            scaler = StandardScaler()
-            trainset[column_name] = scaler.fit_transform(trainset[[column_name]])
-            self.scalers[column_name] = scaler
+            elif strategy == "standardize":
+                scaler = StandardScaler()
+                train_transformed[col] = scaler.fit_transform(train[[col]])
+                self.scalers[col] = scaler
 
-        elif transformation == "normalize":
-            scaler = MinMaxScaler()
-            trainset[column_name] = scaler.fit_transform(trainset[[column_name]])
-            self.scalers[column_name] = scaler
+            elif strategy == "normalize":
+                scaler = MinMaxScaler()
+                train_transformed[col] = scaler.fit_transform(train[[col]])
+                self.scalers[col] = scaler
 
-        elif transformation == "discretize":
-            kb = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='uniform')
-            trainset[column_name] = kb.fit_transform(trainset[[column_name]]).astype(int)
-            self.scalers[column_name] = kb
-        
-        else:
-            raise ValueError(f"Transformation '{transformation}' is not supported.")
+            elif strategy == "discretize":
+                kbins = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='uniform')
+                train_transformed[col] = kbins.fit_transform(train[[col]]).astype(int)
+                self.encoders[col] = kbins
 
-        return trainset
+            else:
+                raise ValueError(f"Unknown transformation strategy: {strategy}")
 
-    def transform(self, testset, column_name):
+        return train_transformed
+
+    def transform(self, test, column_name=None):
         """
-        Transform the specified column in the testset using fitted encoders/scalers.
-        :param testset: pd.DataFrame, the test dataset
-        :param column_name: str, the column to be transformed
-        :return: Transformed testset with the specified column
+        Transform the test data using previously fitted transformers.
+        Args:
+            test (pd.DataFrame): The test dataset.
+            column_name (dict): Optional, for consistency check with strategies.
+        Returns:
+            pd.DataFrame: Transformed test data.
         """
-        if column_name not in testset.columns:
-            raise ValueError(f"Column '{column_name}' not found in the dataset.")
+        if column_name is not None:
+            # Verify that strategies match
+            if column_name != self.column_strategy:
+                raise ValueError("Column transformation strategy mismatch between train and test.")
 
-        transformation = self.transformations.get(column_name, "no_transform")
-        
-        if transformation == "no_transform":
-            return testset
+        test_transformed = test.copy()
 
-        elif transformation == "label_encode":
-            le = self.encoders.get(column_name)
-            if le is None:
-                raise ValueError(f"LabelEncoder for '{column_name}' is not fitted.")
-            testset[column_name] = le.transform(testset[column_name].astype(str))
+        for col, strategy in self.column_strategy.items():
+            if strategy == "no_transform":
+                continue
 
-        elif transformation == "onehot_encode":
-            ohe = self.encoders.get(column_name)
-            if ohe is None:
-                raise ValueError(f"OneHotEncoder for '{column_name}' is not fitted.")
-            transformed = ohe.transform(testset[[column_name]])
-            transformed_df = pd.DataFrame(transformed, 
-                                          columns=[f"{column_name}_{i}" for i in range(transformed.shape[1])])
-            testset = testset.drop(column_name, axis=1).reset_index(drop=True)
-            testset = pd.concat([testset, transformed_df], axis=1)
+            elif strategy == "label_encode":
+                le = self.encoders.get(col)
+                if le is not None:
+                    test_transformed[col] = le.transform(test[col])
 
-        elif transformation == "standarize" or transformation == "normalize":
-            scaler = self.scalers.get(column_name)
-            if scaler is None:
-                raise ValueError(f"Scaler for '{column_name}' is not fitted.")
-            testset[column_name] = scaler.transform(testset[[column_name]])
+            elif strategy == "onehot_encode":
+                ohe = self.encoders.get(col)
+                if ohe is not None:
+                    encoded = ohe.transform(test[[col]])
+                    col_names = [f"{col}_{cat}" for cat in ohe.categories_[0][1:]]
+                    onehot_df = pd.DataFrame(encoded, columns=col_names, index=test.index)
+                    test_transformed = test_transformed.drop(columns=[col])
+                    test_transformed = pd.concat([test_transformed, onehot_df], axis=1)
 
-        elif transformation == "discretize":
-            kb = self.scalers.get(column_name)
-            if kb is None:
-                raise ValueError(f"KBinsDiscretizer for '{column_name}' is not fitted.")
-            testset[column_name] = kb.transform(testset[[column_name]]).astype(int)
-        
-        else:
-            raise ValueError(f"Transformation '{transformation}' is not supported.")
+            elif strategy == "standardize":
+                scaler = self.scalers.get(col)
+                if scaler is not None:
+                    test_transformed[col] = scaler.transform(test[[col]])
 
-        return testset
+            elif strategy == "normalize":
+                scaler = self.scalers.get(col)
+                if scaler is not None:
+                    test_transformed[col] = scaler.transform(test[[col]])
 
-# Example usage:
-if __name__ == "__main__":
-    # Sample dataset
-    train = pd.DataFrame({
-        'A': ['cat', 'dog', 'mouse'],
-        'B': [1.0, 2.5, 3.7],
-        'C': [10, 20, 30]
-    })
-    test = pd.DataFrame({
-        'A': ['dog', 'mouse', 'cat'],
-        'B': [2.0, 3.5, 1.5],
-        'C': [15, 25, 35]
-    })
+            elif strategy == "discretize":
+                kbins = self.encoders.get(col)
+                if kbins is not None:
+                    test_transformed[col] = kbins.transform(test[[col]]).astype(int)
 
-    transformations = {
-        'A': 'label_encode',
-        'B': 'standarize',
-        'C': 'discretize'
-    }
+            else:
+                raise ValueError(f"Unknown transformation strategy: {strategy}")
 
-    transformer = ColumnTransformer(transformations)
-
-    # Fit and transform trainset
-    print("Trainset Before Transformation:")
-    print(train)
-    train = transformer.fit_transform(train, 'A')
-    train = transformer.fit_transform(train, 'B')
-    train = transformer.fit_transform(train, 'C')
-    print("\nTrainset After Transformation:")
-    print(train)
-
-    # Transform testset
-    print("\nTestset Before Transformation:")
-    print(test)
-    test = transformer.transform(test, 'A')
-    test = transformer.transform(test, 'B')
-    test = transformer.transform(test, 'C')
-    print("\nTestset After Transformation:")
-    print(test)
+        return test_transformed
