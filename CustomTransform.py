@@ -2,145 +2,151 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler, MinMaxScaler, KBinsDiscretizer
 
-class DataTransformer:
-    def __init__(self):
-        self.transform_params = {}  # Store transformation details for each column
-        self.encoders = {}          # Store encoders or scalers for columns
-        self.means = {}             # Store mean values for columns
-
-    def fit_transform(self, train_set, column_name):
+class ColumnTransformer:
+    def __init__(self, transformations):
         """
-        Fits and applies transformations on the train set.
-
-        Parameters:
-        - train_set: pd.DataFrame
-        - column_name: dict, key = column, value = transform type
-
-        Returns:
-        - Transformed train set (pd.DataFrame)
+        Initialize with a dictionary of column transformations.
+        :param transformations: dict, key=column_name, value=transformation type
+               Supported types: "no_transform", "label_encode", "onehot_encode", "standarize", "normalize", "discretize"
         """
-        transformed_df = train_set.copy()
+        self.transformations = transformations
+        self.encoders = {}
+        self.scalers = {}
 
-        # Apply transformations based on column_name and drop 'timestamp_decompose' and 'timestamp_encode' columns
-        columns_to_drop = []
+    def fit_transform(self, trainset, column_name):
+        """
+        Fit and transform the specified column in the trainset.
+        :param trainset: pd.DataFrame, the training dataset
+        :param column_name: str, the column to be transformed
+        :return: Transformed trainset with the specified column
+        """
+        if column_name not in trainset.columns:
+            raise ValueError(f"Column '{column_name}' not found in the dataset.")
+
+        transformation = self.transformations.get(column_name, "no_transform")
         
-        for col, transform_type in column_name.items():
-            if transform_type == 'timestamp_decompose':
-                transformed_df = pd.concat([transformed_df, self.timestamp_decompose(transformed_df[col])], axis=1)
-                columns_to_drop.append(col)  # Drop the original timestamp column
-            elif transform_type == 'timestamp_encode':
-                transformed_df = pd.concat([transformed_df, self.timestamp_encode(transformed_df[col])], axis=1)
-                columns_to_drop.append(col)  # Drop the original timestamp column
+        if transformation == "no_transform":
+            # Do nothing
+            return trainset
 
-        # Drop timestamp columns after transformation
-        transformed_df.drop(columns=columns_to_drop, inplace=True)
+        elif transformation == "label_encode":
+            le = LabelEncoder()
+            trainset[column_name] = le.fit_transform(trainset[column_name].astype(str))
+            self.encoders[column_name] = le
 
-        for col, transform_type in column_name.items():
-            if transform_type == "no_transform":
-                continue
+        elif transformation == "onehot_encode":
+            ohe = OneHotEncoder(sparse=False, drop='first')  # drop_first to avoid dummy variable trap
+            transformed = ohe.fit_transform(trainset[[column_name]])
+            transformed_df = pd.DataFrame(transformed, 
+                                          columns=[f"{column_name}_{i}" for i in range(transformed.shape[1])])
+            self.encoders[column_name] = ohe
+            trainset = trainset.drop(column_name, axis=1).reset_index(drop=True)
+            trainset = pd.concat([trainset, transformed_df], axis=1)
 
-            elif transform_type == "label_encode":
-                le = LabelEncoder()
-                transformed_df[col] = le.fit_transform(transformed_df[col].fillna("NA"))
-                self.encoders[col] = le
+        elif transformation == "standarize":
+            scaler = StandardScaler()
+            trainset[column_name] = scaler.fit_transform(trainset[[column_name]])
+            self.scalers[column_name] = scaler
 
-            elif transform_type == "onehot_encode":
-                ohe = OneHotEncoder(sparse=False, handle_unknown='ignore')
-                ohe_result = ohe.fit_transform(transformed_df[[col]].fillna("NA"))
-                ohe_columns = [f"{col}_{cat}" for cat in ohe.categories_[0]]
-                ohe_df = pd.DataFrame(ohe_result, columns=ohe_columns, index=train_set.index)
-                transformed_df = pd.concat([transformed_df.drop(columns=[col]), ohe_df], axis=1)
-                self.encoders[col] = ohe
+        elif transformation == "normalize":
+            scaler = MinMaxScaler()
+            trainset[column_name] = scaler.fit_transform(trainset[[column_name]])
+            self.scalers[column_name] = scaler
 
-            elif transform_type == "standardize":
-                # Fill missing values with column mean before scaling
-                col_mean = transformed_df[col].mean()
-                transformed_df[col].fillna(col_mean, inplace=True)
-                scaler = StandardScaler()
-                transformed_df[col] = scaler.fit_transform(transformed_df[[col]])
-                self.encoders[col] = scaler
-                self.means[col] = col_mean
-
-            elif transform_type == "normalize":
-                # Fill missing values with column mean before scaling
-                col_mean = transformed_df[col].mean()
-                transformed_df[col].fillna(col_mean, inplace=True)
-                scaler = MinMaxScaler()
-                transformed_df[col] = scaler.fit_transform(transformed_df[[col]])
-                self.encoders[col] = scaler
-                self.means[col] = col_mean
-
-            elif transform_type == "discretize":
-                discretizer = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='quantile')
-                transformed_df[col] = discretizer.fit_transform(transformed_df[[col]].fillna(0)).astype(int)
-                self.encoders[col] = discretizer
-
-            else:
-                raise ValueError(f"Unknown transformation: {transform_type}")
+        elif transformation == "discretize":
+            kb = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='uniform')
+            trainset[column_name] = kb.fit_transform(trainset[[column_name]]).astype(int)
+            self.scalers[column_name] = kb
         
-        return transformed_df
+        else:
+            raise ValueError(f"Transformation '{transformation}' is not supported.")
 
-    def transform(self, test_set, column_name):
+        return trainset
+
+    def transform(self, testset, column_name):
         """
-        Applies transformations to the test set using saved parameters.
-
-        Parameters:
-        - test_set: pd.DataFrame
-        - column_name: dict, key = column, value = transform type
-
-        Returns:
-        - Transformed test set (pd.DataFrame)
+        Transform the specified column in the testset using fitted encoders/scalers.
+        :param testset: pd.DataFrame, the test dataset
+        :param column_name: str, the column to be transformed
+        :return: Transformed testset with the specified column
         """
-        transformed_df = test_set.copy()
+        if column_name not in testset.columns:
+            raise ValueError(f"Column '{column_name}' not found in the dataset.")
 
-        for col, transform_type in column_name.items():
-            if transform_type == "no_transform":
-                continue
-
-            elif transform_type == "label_encode":
-                le = self.encoders.get(col)
-                if not le:
-                    raise ValueError(f"LabelEncoder for column '{col}' not fitted.")
-                transformed_df[col] = le.transform(transformed_df[col].fillna("NA"))
-
-            elif transform_type == "onehot_encode":
-                ohe = self.encoders.get(col)
-                if not ohe:
-                    raise ValueError(f"OneHotEncoder for column '{col}' not fitted.")
-                ohe_result = ohe.transform(transformed_df[[col]].fillna("NA"))
-                ohe_columns = [f"{col}_{cat}" for cat in ohe.categories_[0]]
-                ohe_df = pd.DataFrame(ohe_result, columns=ohe_columns, index=test_set.index)
-                transformed_df = pd.concat([transformed_df.drop(columns=[col]), ohe_df], axis=1)
-
-            elif transform_type == "standardize":
-                # Use train mean to fill missing values
-                col_mean = self.means.get(col)
-                if col_mean is None:
-                    raise ValueError(f"StandardScaler for column '{col}' not fitted.")
-                transformed_df[col].fillna(col_mean, inplace=True)
-                scaler = self.encoders.get(col)
-                if not scaler:
-                    raise ValueError(f"StandardScaler for column '{col}' not fitted.")
-                transformed_df[col] = scaler.transform(transformed_df[[col]])
-
-            elif transform_type == "normalize":
-                # Use train mean to fill missing values
-                col_mean = self.means.get(col)
-                if col_mean is None:
-                    raise ValueError(f"MinMaxScaler for column '{col}' not fitted.")
-                transformed_df[col].fillna(col_mean, inplace=True)
-                scaler = self.encoders.get(col)
-                if not scaler:
-                    raise ValueError(f"MinMaxScaler for column '{col}' not fitted.")
-                transformed_df[col] = scaler.transform(transformed_df[[col]])
-
-            elif transform_type == "discretize":
-                discretizer = self.encoders.get(col)
-                if not discretizer:
-                    raise ValueError(f"Discretizer for column '{col}' not fitted.")
-                transformed_df[col] = discretizer.transform(transformed_df[[col]].fillna(0)).astype(int)
-
-            else:
-                raise ValueError(f"Unknown transformation: {transform_type}")
+        transformation = self.transformations.get(column_name, "no_transform")
         
-        return transformed_df
+        if transformation == "no_transform":
+            return testset
+
+        elif transformation == "label_encode":
+            le = self.encoders.get(column_name)
+            if le is None:
+                raise ValueError(f"LabelEncoder for '{column_name}' is not fitted.")
+            testset[column_name] = le.transform(testset[column_name].astype(str))
+
+        elif transformation == "onehot_encode":
+            ohe = self.encoders.get(column_name)
+            if ohe is None:
+                raise ValueError(f"OneHotEncoder for '{column_name}' is not fitted.")
+            transformed = ohe.transform(testset[[column_name]])
+            transformed_df = pd.DataFrame(transformed, 
+                                          columns=[f"{column_name}_{i}" for i in range(transformed.shape[1])])
+            testset = testset.drop(column_name, axis=1).reset_index(drop=True)
+            testset = pd.concat([testset, transformed_df], axis=1)
+
+        elif transformation == "standarize" or transformation == "normalize":
+            scaler = self.scalers.get(column_name)
+            if scaler is None:
+                raise ValueError(f"Scaler for '{column_name}' is not fitted.")
+            testset[column_name] = scaler.transform(testset[[column_name]])
+
+        elif transformation == "discretize":
+            kb = self.scalers.get(column_name)
+            if kb is None:
+                raise ValueError(f"KBinsDiscretizer for '{column_name}' is not fitted.")
+            testset[column_name] = kb.transform(testset[[column_name]]).astype(int)
+        
+        else:
+            raise ValueError(f"Transformation '{transformation}' is not supported.")
+
+        return testset
+
+# Example usage:
+if __name__ == "__main__":
+    # Sample dataset
+    train = pd.DataFrame({
+        'A': ['cat', 'dog', 'mouse'],
+        'B': [1.0, 2.5, 3.7],
+        'C': [10, 20, 30]
+    })
+    test = pd.DataFrame({
+        'A': ['dog', 'mouse', 'cat'],
+        'B': [2.0, 3.5, 1.5],
+        'C': [15, 25, 35]
+    })
+
+    transformations = {
+        'A': 'label_encode',
+        'B': 'standarize',
+        'C': 'discretize'
+    }
+
+    transformer = ColumnTransformer(transformations)
+
+    # Fit and transform trainset
+    print("Trainset Before Transformation:")
+    print(train)
+    train = transformer.fit_transform(train, 'A')
+    train = transformer.fit_transform(train, 'B')
+    train = transformer.fit_transform(train, 'C')
+    print("\nTrainset After Transformation:")
+    print(train)
+
+    # Transform testset
+    print("\nTestset Before Transformation:")
+    print(test)
+    test = transformer.transform(test, 'A')
+    test = transformer.transform(test, 'B')
+    test = transformer.transform(test, 'C')
+    print("\nTestset After Transformation:")
+    print(test)
