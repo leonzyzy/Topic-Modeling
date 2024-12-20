@@ -1,15 +1,26 @@
-import pandas as pd
-import numpy as np
+import os
+import boto3
 
-# Generate random numerical DataFrame
-np.random.seed(42)  # For reproducibility
-data = {
-    "Column_A": np.random.randint(0, 100, size=10),                # Random integers
-    "Column_B": np.random.uniform(0, 1, size=10),                 # Random floats
-    "Column_C": np.random.normal(50, 10, size=10),                # Normally distributed data
-    "Column_D": np.random.randint(1, 4, size=10),                 # Random integers (1 to 3)
-    "Column_E": np.random.randint(1000, 2000, size=10)            # Random integers (1000 to 2000)
-}
+def upload_directory(local_directory, bucket_name, s3_prefix=''):
+    s3 = boto3.client('s3')
 
-df = pd.DataFrame(data)
-print(df)
+    # Walk through the local directory
+    for root, dirs, files in os.walk(local_directory):
+        for file in files:
+            # Get the full local file path
+            local_file_path = os.path.join(root, file)
+            
+            # Create the corresponding S3 key (folder structure)
+            relative_path = os.path.relpath(local_file_path, local_directory)
+            s3_key = os.path.join(s3_prefix, relative_path)
+
+            # Upload the file to S3
+            s3.upload_file(local_file_path, bucket_name, s3_key)
+            print(f"Uploaded {local_file_path} to s3://{bucket_name}/{s3_key}")
+
+# Usage
+local_folder = 'path/to/your/local/folder'  # Local folder you want to upload
+bucket_name = 'your-bucket-name'            # Your S3 bucket name
+s3_prefix = 'your/desired/folder/prefix'    # Optional: Prefix to organize files in S3
+
+upload_directory(local_folder, bucket_name, s3_prefix)
