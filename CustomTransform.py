@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 from torch.nn.parallel import DistributedDataParallel as DDP
-
+import torch.multiprocessing as mp
 
 # 1. Simple Dataset
 class SimpleDataset(Dataset):
@@ -77,15 +77,14 @@ def train(rank, world_size):
     torch.distributed.destroy_process_group()
 
 
-# 5. Main Function (entry point)
+# 5. Main Function with Multiprocessing
 def main():
     world_size = torch.cuda.device_count()  # Number of GPUs
     print(f"Using {world_size} GPUs")
-    rank = int(os.environ['RANK'])  # This is set by torchrun
-    world_size = int(os.environ['WORLD_SIZE'])  # This is set by torchrun
-    train(rank, world_size)
+    
+    # Use torch.multiprocessing.spawn to launch the processes
+    mp.spawn(train, args=(world_size,), nprocs=world_size, join=True)
 
 
 if __name__ == "__main__":
     main()
-
