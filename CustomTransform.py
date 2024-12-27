@@ -76,3 +76,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+torchrun --nnodes=2 --nproc_per_node=2 --node_rank=0 --master_addr="MASTER_IP" --master_port=29500 ddp_training.py
