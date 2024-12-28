@@ -19,3 +19,4 @@ def run():
 
 if __name__ == "__main__":
     run()
+torchrun --nnodes 2 --nproc_per_node 2 --node_rank 0 --master_addr <IP ADDRESS OF NODE 0> --master_port 29332 multi_node_test.py
