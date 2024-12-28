@@ -1,80 +1,90 @@
 import os
 import torch
 import torch.distributed as dist
+from torch import nn
+from torch.utils.data import DataLoader, Dataset
+import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data import DataLoader, DistributedSampler
-import torch.nn as nn
+import torch.multiprocessing as mp
 
-class SimpleModel(nn.Module):
+# Define a simple dataset for demonstration (replace with your real dataset)
+class DummyDataset(Dataset):
+    def __init__(self, num_samples=1000):
+        self.num_samples = num_samples
+    
+    def __len__(self):
+        return self.num_samples
+    
+    def __getitem__(self, idx):
+        return torch.randn(3, 224, 224), torch.randint(0, 10, (1,))
+
+# Define a simple model for demonstration (replace with your real model)
+class DummyModel(nn.Module):
     def __init__(self):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(10, 64),
-            nn.ReLU(),
-            nn.Linear(64, 1)
-        )
+        super(DummyModel, self).__init__()
+        self.fc = nn.Linear(3 * 224 * 224, 10)
     
     def forward(self, x):
-        return self.net(x)
+        x = x.view(x.size(0), -1)
+        return self.fc(x)
 
-def train(rank, train_loader, model, criterion, optimizer, epoch):
+def setup_ddp(rank, world_size):
+    # Initialize the distributed environment
+    dist.init_process_group(
+        backend='nccl',
+        init_method=f'tcp://{os.environ["MASTER_ADDR"]}:{os.environ["MASTER_PORT"]}',
+        world_size=world_size,
+        rank=rank
+    )
+    torch.cuda.set_device(rank)  # Set the device for each process
+
+def create_dataloader(batch_size=32):
+    # Create DataLoader and distribute across processes
+    dataset = DummyDataset()
+    sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+    dataloader = DataLoader(dataset, batch_size=batch_size, sampler=sampler)
+    return dataloader
+
+def train(model, dataloader, optimizer, epoch):
     model.train()
-    for batch_idx, (data, target) in enumerate(train_loader):
-        data = data.to(rank)
-        target = target.to(rank)
-        
+    for data, target in dataloader:
+        data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
         optimizer.zero_grad()
         output = model(data)
-        loss = criterion(output, target)
+        loss = nn.CrossEntropyLoss()(output, target)
         loss.backward()
         optimizer.step()
-        
-        if rank == 0 and batch_idx % 100 == 0:
-            print(f'Epoch: {epoch}, Batch: {batch_idx}, Loss: {loss.item():.4f}')
+    
+    print(f"Epoch {epoch} training complete")
+
+def run(rank, world_size):
+    # Set up distributed environment
+    setup_ddp(rank, world_size)
+
+    # Initialize the model, optimizer, and dataloader
+    model = DummyModel().cuda()
+    model = DDP(model, device_ids=[rank])
+
+    optimizer = optim.SGD(model.parameters(), lr=0.001)
+
+    dataloader = create_dataloader()
+
+    # Training loop
+    for epoch in range(10):
+        train(model, dataloader, optimizer, epoch)
+
+    dist.destroy_process_group()
 
 def main():
-    # Initialize process group
-    dist.init_process_group("nccl")
+    # Set environment variables for MASTER_ADDR and MASTER_PORT
+    os.environ['MASTER_ADDR'] = 'localhost'  # Set to master node IP
+    os.environ['MASTER_PORT'] = '29500'
     
-    # Get rank and world_size
-    rank = int(os.environ["LOCAL_RANK"])
-    world_size = dist.get_world_size()
-    
-    # Set device
-    torch.cuda.set_device(rank)
-    
-    # Create model
-    model = SimpleModel().to(rank)
-    model = DDP(model, device_ids=[rank])
-    
-    # Create dataset (replace with your data)
-    train_data = torch.randn(1000, 10)
-    train_labels = torch.randn(1000, 1)
-    dataset = torch.utils.data.TensorDataset(train_data, train_labels)
-    
-    # Setup data loader
-    sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank)
-    train_loader = DataLoader(
-        dataset, 
-        batch_size=32, 
-        sampler=sampler,
-        pin_memory=True
-    )
-    
-    # Setup optimizer and loss
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    criterion = nn.MSELoss()
-    
-    # Training loop
-    num_epochs = 5
-    for epoch in range(num_epochs):
-        sampler.set_epoch(epoch)
-        train(rank, train_loader, model, criterion, optimizer, epoch)
-        
-    # Cleanup
-    dist.destroy_process_group()
+    # Number of processes per node (GPUs)
+    world_size = 2  # Change this to the total number of processes across all nodes
+
+    # Spawn processes for multi-GPU DDP
+    mp.spawn(run, args=(world_size,), nprocs=world_size, join=True)
 
 if __name__ == "__main__":
     main()
-
-torchrun --nnodes=2 --nproc_per_node=2 --node_rank=0 --master_addr="MASTER_IP" --master_port=29500 ddp_training.py
