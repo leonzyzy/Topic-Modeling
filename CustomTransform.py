@@ -1,37 +1,60 @@
 import torch
-import torch.nn as nn
 import torch.optim as optim
+import torch.nn as nn
 import torch.distributed as dist
-from sklearn.metrics import precision_score, recall_score, matthews_corrcoef
+import argparse
 import os
+from sklearn.metrics import precision_score, recall_score, matthews_corrcoef
 
-# Dummy ToyModel for demonstration
-class ToyModel(nn.Module):
-    def __init__(self):
-        super(ToyModel, self).__init__()
-        self.fc = nn.Linear(10, 5)
+# Configuration for the model and optimizer
+def parse_args():
+    parser = argparse.ArgumentParser(description="DDP Training with Hyperparameters")
 
-    def forward(self, x):
-        return self.fc(x)
+    # Model and optimizer hyperparameters
+    parser.add_argument("--learning_rate", type=float, default=0.001, help="Learning rate for the optimizer")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs to train the model")
+    parser.add_argument("--optimizer", type=str, default="SGD", choices=["SGD", "Adam"], help="Optimizer type")
+    parser.add_argument("--momentum", type=float, default=0.9, help="Momentum for SGD optimizer")
+    parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay for the optimizer")
+    parser.add_argument("--device", type=str, default="cuda", help="Device type (cpu or cuda)")
+    parser.add_argument("--loss_fn", type=str, default="MSELoss", choices=["MSELoss", "CrossEntropyLoss"], help="Loss function")
+    parser.add_argument("--logging_freq", type=int, default=10, help="Frequency of logging metrics")
 
-# Compute metrics for accuracy, precision, recall, specificity, and MCC
+    # Distributed training options
+    parser.add_argument("--world_size", type=int, default=1, help="Total number of processes in distributed training")
+    parser.add_argument("--rank", type=int, default=0, help="Rank of the current process")
+
+    return parser.parse_args()
+
+# DDP Setup function
+def setup_ddp(rank, world_size, config):
+    dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+    model = ToyModel().to(rank)
+    ddp_model = DDP(model, device_ids=[rank])
+    return ddp_model
+
+# Create DataLoader function for distributed training
+def create_dataloader(batch_size, rank, world_size):
+    train_dataset = CustomDataset()  # Replace with your dataset
+    sampler = torch.utils.data.DistributedSampler(train_dataset, num_replicas=world_size, rank=rank)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, sampler=sampler)
+    return train_loader
+
+# Metrics computation function
 def compute_metrics(pred, true, rank, world_size):
-    """Compute precision, recall, specificity, and MCC in a distributed manner."""
-    # Convert the lists to tensors
     pred_tensor = torch.tensor(pred).to(rank)
     true_tensor = torch.tensor(true).to(rank)
-
-    # Compute local TP, FP, TN, FN
+    
     tp = torch.sum((pred_tensor == 1) & (true_tensor == 1)).float().to(rank)
     fp = torch.sum((pred_tensor == 1) & (true_tensor == 0)).float().to(rank)
     tn = torch.sum((pred_tensor == 0) & (true_tensor == 0)).float().to(rank)
     fn = torch.sum((pred_tensor == 0) & (true_tensor == 1)).float().to(rank)
 
-    # Aggregate across all processes
     for tensor in [tp, fp, tn, fn]:
         dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
 
-    # Calculate metrics
     epsilon = 1e-8
     precision = tp / (tp + fp + epsilon)
     recall = tp / (tp + fn + epsilon)
@@ -40,107 +63,94 @@ def compute_metrics(pred, true, rank, world_size):
         torch.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)) + epsilon
     )
 
-    # Calculate accuracy
     accuracy = torch.sum(pred_tensor == true_tensor).float() / len(pred_tensor)
-
-    # Convert to numpy for use in scikit-learn metrics
-    pred_np = pred_tensor.cpu().numpy()
-    true_np = true_tensor.cpu().numpy()
-
-    # Using sklearn for additional metrics (precision, recall, MCC)
-    precision_sklearn = precision_score(true_np, pred_np)
-    recall_sklearn = recall_score(true_np, pred_np)
-    mcc_sklearn = matthews_corrcoef(true_np, pred_np)
 
     return {
         "accuracy": accuracy.item(),
-        "precision": precision_sklearn,
-        "recall": recall_sklearn,
+        "precision": precision.item(),
+        "recall": recall.item(),
         "specificity": specificity.item(),
-        "mcc": mcc_sklearn
+        "mcc": mcc.item()
     }
 
-# Create DataLoader function
-def create_dataloader(batch_size=32, num_workers=4):
-    # Example function to create dataloaders (this can be modified for your dataset)
-    from torch.utils.data import DataLoader, TensorDataset
-    data = torch.randn(1000, 10)
-    labels = torch.randint(0, 2, (1000, 5))
-    dataset = TensorDataset(data, labels)
-    return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+# Training function
+def train(ddp_model, train_loader, config, rank, world_size):
+    optimizer = optim.SGD(ddp_model.parameters(), lr=config.learning_rate, momentum=config.momentum, weight_decay=config.weight_decay)
+    loss_fn = nn.MSELoss() if config.loss_fn == "MSELoss" else nn.CrossEntropyLoss()
+    epoch_losses = []
 
-# Training loop with evaluation
-def train(rank, world_size, epochs=10):
-    # Setup for DDP
-    torch.cuda.set_device(rank)
-    dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
-    
-    # Model, optimizer, and loss function
-    model = ToyModel().to(rank)
-    model = nn.parallel.DistributedDataParallel(model, device_ids=[rank])
-    optimizer = optim.SGD(model.parameters(), lr=0.001)
-    loss_fn = nn.BCEWithLogitsLoss()
+    for epoch in range(config.epochs):
+        ddp_model.train()
+        total_loss = 0
+        total_metrics = {"accuracy": 0, "precision": 0, "recall": 0, "specificity": 0, "mcc": 0}
+        batch_count = 0
 
-    # DataLoader
-    train_loader = create_dataloader(batch_size=32, num_workers=4)
-    
-    # Training Loop
-    for epoch in range(epochs):
-        model.train()
-        epoch_loss = 0.0
-        all_preds = []
-        all_labels = []
-        
-        for data, labels in train_loader:
+        for batch_idx, (data, labels) in enumerate(train_loader):
             data, labels = data.to(rank), labels.to(rank)
             optimizer.zero_grad()
-            
-            outputs = model(data)
-            loss = loss_fn(outputs, labels.float())
+            outputs = ddp_model(data)
+            loss = loss_fn(outputs, labels)
             loss.backward()
             optimizer.step()
-            
-            epoch_loss += loss.item()
-            
-            # Collect predictions and true labels
-            preds = torch.round(torch.sigmoid(outputs)).cpu().numpy()
-            true = labels.cpu().numpy()
-            
-            all_preds.extend(preds)
-            all_labels.extend(true)
 
-        # Compute metrics after the epoch
-        metrics = compute_metrics(all_preds, all_labels, rank, world_size)
+            total_loss += loss.item()
+            batch_metrics = compute_metrics(outputs, labels, rank, world_size)
+            for metric in batch_metrics:
+                total_metrics[metric] += batch_metrics[metric]
+            
+            batch_count += 1
 
-        # Print results from rank 0
+            if batch_idx % config.logging_freq == 0:
+                print(f"Epoch [{epoch}/{config.epochs}], Batch [{batch_idx}], Loss: {loss.item()}")
+
+        # Average metrics over all batches
+        for metric in total_metrics:
+            total_metrics[metric] /= batch_count
+
+        print(f"Epoch [{epoch}/{config.epochs}]: Loss = {total_loss / batch_count:.4f}, Accuracy = {total_metrics['accuracy']:.4f}, Precision = {total_metrics['precision']:.4f}, Recall = {total_metrics['recall']:.4f}, Specificity = {total_metrics['specificity']:.4f}, MCC = {total_metrics['mcc']:.4f}")
+        
+        # Save checkpoint
         if rank == 0:
-            print(f"Epoch [{epoch + 1}/{epochs}], Loss: {epoch_loss / len(train_loader):.4f}")
-            print(f"Accuracy: {metrics['accuracy']:.4f}, Precision: {metrics['precision']:.4f}, Recall: {metrics['recall']:.4f}")
-            print(f"Specificity: {metrics['specificity']:.4f}, MCC: {metrics['mcc']:.4f}")
+            torch.save(ddp_model.state_dict(), f"model_epoch_{epoch}.pth")
 
-        # Save checkpoint after each epoch
-        if rank == 0:
-            checkpoint = {
-                'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'loss': epoch_loss / len(train_loader),
-            }
-            torch.save(checkpoint, f"checkpoint_epoch_{epoch + 1}.pth")
+# Evaluate function for validation
+def evaluate(ddp_model, val_loader, config, rank, world_size):
+    ddp_model.eval()
+    total_metrics = {"accuracy": 0, "precision": 0, "recall": 0, "specificity": 0, "mcc": 0}
+    batch_count = 0
 
-    # Cleanup
-    dist.destroy_process_group()
+    with torch.no_grad():
+        for data, labels in val_loader:
+            data, labels = data.to(rank), labels.to(rank)
+            outputs = ddp_model(data)
+            batch_metrics = compute_metrics(outputs, labels, rank, world_size)
+            for metric in batch_metrics:
+                total_metrics[metric] += batch_metrics[metric]
+            batch_count += 1
 
-# Main function for running training with torchrun (distributed)
+    # Average metrics over all batches
+    for metric in total_metrics:
+        total_metrics[metric] /= batch_count
+
+    print(f"Validation: Accuracy = {total_metrics['accuracy']:.4f}, Precision = {total_metrics['precision']:.4f}, Recall = {total_metrics['recall']:.4f}, Specificity = {total_metrics['specificity']:.4f}, MCC = {total_metrics['mcc']:.4f}")
+
+# Main function to train and evaluate
 def main():
-    world_size = 2  # Number of nodes (GPU devices)
-    torchrun_args = {
-        "backend": "nccl",
-        "rank": 0,
-        "world_size": world_size,
-    }
-    # This function should be run using `torchrun`
-    train(**torchrun_args)
+    # Parse arguments
+    args = parse_args()
+    
+    # Setup DDP and DataLoader
+    rank = args.rank
+    world_size = args.world_size
+    ddp_model = setup_ddp(rank, world_size, args)
+    train_loader = create_dataloader(args.batch_size, rank, world_size)
+
+    # Train and evaluate
+    train(ddp_model, train_loader, args, rank, world_size)
+
+    # Optionally evaluate on validation data
+    # val_loader = create_dataloader(args.batch_size, rank, world_size)  # Load validation data
+    # evaluate(ddp_model, val_loader, args, rank, world_size)
 
 if __name__ == "__main__":
     main()
