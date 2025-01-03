@@ -1,17 +1,19 @@
 import os
 import logging
 import torch
+import pytz
+from datetime import datetime
 
-from datetime import datetime, timezone, timedelta
-
-# Define EST (UTC - 5 hours) timezone
-EST = timezone(timedelta(hours=-5))
-
-# Custom formatter to add EST to logging time
+# Custom formatter to log time in US Eastern Time (EST)
 class ESTFormatter(logging.Formatter):
     def formatTime(self, record, datefmt=None):
-        # Get the time in UTC and convert it to EST
-        est_time = datetime.fromtimestamp(record.created, EST)
+        # Define the EST timezone
+        eastern = pytz.timezone('US/Eastern')
+        # Get the current time in UTC and convert to EST
+        utc_time = datetime.utcfromtimestamp(record.created)
+        utc_time = pytz.utc.localize(utc_time)
+        est_time = utc_time.astimezone(eastern)
+        # Return formatted time string
         return est_time.strftime('%Y-%m-%d %H:%M:%S')
 
 # Step 1: Create a directory for logs (if it doesn't exist)
