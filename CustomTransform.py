@@ -2,6 +2,18 @@ import os
 import logging
 import torch
 
+from datetime import datetime, timezone, timedelta
+
+# Define EST (UTC - 5 hours) timezone
+EST = timezone(timedelta(hours=-5))
+
+# Custom formatter to add EST to logging time
+class ESTFormatter(logging.Formatter):
+    def formatTime(self, record, datefmt=None):
+        # Get the time in UTC and convert it to EST
+        est_time = datetime.fromtimestamp(record.created, EST)
+        return est_time.strftime('%Y-%m-%d %H:%M:%S')
+
 # Step 1: Create a directory for logs (if it doesn't exist)
 log_dir = "logs"
 os.makedirs(log_dir, exist_ok=True)  # Creates folder if it doesn't exist
