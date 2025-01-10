@@ -1,6 +1,7 @@
 import os
 import pickle
 from typing import Dict
+from pyspark.sql import functions as F
 from pyspark.sql import DataFrame
 from pyspark.ml.feature import StandardScaler, OneHotEncoder, StringIndexer, VectorAssembler
 from pyspark.ml import Pipeline
@@ -87,8 +88,33 @@ class DataTransformer:
         encoder_model = encoder.fit(indexed_df)
         return encoder_model
 
-    def _create_timestamp_encoder(self, df: DataFrame, col_name: str):
+    def _create_timestamp_encoder(self, df: DataFrame, col_name: str) -> DataFrame:
         """
-        Create and fit a timestamp encoder for a given column.
+        Encode timestamp-related features and drop the original timestamp column.
+        
+        Parameters:
+        df (DataFrame): The DataFrame containing the column to be encoded.
+        col_name (str): The name of the timestamp column to encode.
+        
+        Returns:
+        DataFrame: The updated DataFrame with the new encoded features.
         """
-        return df.withColumn(f"{col_name}_encoded", unix_timestamp(col(col_name), 'yyyy-MM-dd HH:mm:ss').cast("double"))
+        # Convert the column to timestamp format (if it's not already)
+        df = df.withColumn(col_name, F.col(col_name).cast("timestamp"))
+        
+        # Normalize day to [-0.5, 0.5] for day of the month
+        df = df.withColumn(f"{col_name}_day_enc", 
+                           (F.dayofmonth(F.col(col_name)) - 1) / 30.0 - 0.5)
+        
+        # Normalize day of year to [-0.5, 0.5]
+        df = df.withColumn(f"{col_name}_dayofyear_enc", 
+                           (F.dayofyear(F.col(col_name)) - 1) / 365.0 - 0.5)
+        
+        # Normalize month to [-0.5, 0.5]
+        df = df.withColumn(f"{col_name}_month_enc", 
+                           (F.month(F.col(col_name)) - 1) / 11.0 - 0.5)
+        
+        # Drop the original timestamp column as it is no longer needed
+        df = df.drop(col_name)
+        
+        return df
