@@ -1,24 +1,3 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, FloatType
-import random
+Led the development of the first multi-rank streaming data training framework in our group. I built an end-to-end solution, covering data loading and reading for large-scale datasets, data preprocessing and optimization using LitData, stream data training with multi-node and multi-GPU setups using DDP, and submitting PyTorch jobs. This framework successfully addresses the challenges of large-scale data training, not only for current projects (CM Spend, Acq-Risk, FPF-Occultation) but also as a scalable solution for any future deep learning projects involving large datasets. It enhances our team's ability to efficiently build and train models on large datasets.
 
-# Initialize SparkSession
-spark = SparkSession.builder.appName("CreateSparkDF").getOrCreate()
-
-# Define a schema
-schema = StructType([
-    StructField("Col1", FloatType(), True),
-    StructField("Col2", FloatType(), True),
-    StructField("Col3", FloatType(), True),
-    StructField("Col4", FloatType(), True),
-    StructField("Col5", FloatType(), True)
-])
-
-# Create data for the DataFrame
-data = [[random.random() for _ in range(5)] for _ in range(10)]
-
-# Create a Spark DataFrame
-spark_df = spark.createDataFrame(data, schema)
-
-# Show the DataFrame
-spark_df.show()
+I further improved this framework by integrating Spark for data loading. I customized the seq-model-fpf-etl code to better fit our needs, optimizing data into streaming chunks and uploading to MLZone. This modification has made the framework disk- and memory-free, as everything operates on the cloud throughout the streaming data training and deployment processes.
