@@ -1,11 +1,24 @@
-import pandas as pd
-import numpy as np
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, StructField, FloatType
+import random
 
-# Create a 1000x5 DataFrame with random numerical values
-df = pd.DataFrame(np.random.rand(1000, 5), columns=['Col1', 'Col2', 'Col3', 'Col4', 'Col5'])
+# Initialize SparkSession
+spark = SparkSession.builder.appName("CreateSparkDF").getOrCreate()
 
-# Save the DataFrame to a CSV file
-file_path = '/mnt/data/numerical_df.csv'
-df.to_csv(file_path, index=False)
+# Define a schema
+schema = StructType([
+    StructField("Col1", FloatType(), True),
+    StructField("Col2", FloatType(), True),
+    StructField("Col3", FloatType(), True),
+    StructField("Col4", FloatType(), True),
+    StructField("Col5", FloatType(), True)
+])
 
-file_path
+# Create data for the DataFrame
+data = [[random.random() for _ in range(5)] for _ in range(10)]
+
+# Create a Spark DataFrame
+spark_df = spark.createDataFrame(data, schema)
+
+# Show the DataFrame
+spark_df.show()
