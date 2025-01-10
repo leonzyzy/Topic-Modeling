@@ -1,32 +1,94 @@
+import os
+import pickle
+from typing import Dict
+from pyspark.sql import DataFrame
+from pyspark.ml.feature import StandardScaler, OneHotEncoder, StringIndexer, VectorAssembler
+from pyspark.ml import Pipeline
+from pyspark.sql.functions import col, unix_timestamp
+from pyspark.ml.linalg import Vectors
 
+class DataTransformer:
+    def __init__(self, pkl_file: str = 'preprocessor.pkl'):
+        self.pkl_file = pkl_file
+        self.encoder = {}  # Dictionary to store encoders for columns
 
-# README Overview: Efficient Data Streaming and Distributed Training with litdata  
+    def fit_transform(self, train: DataFrame, column_map: Dict[str, str]) -> DataFrame:
+        """
+        Fit transformers on training data and apply the transformations.
+        """
+        # Check if preprocessor.pkl exists
+        if os.path.exists(self.pkl_file):
+            with open(self.pkl_file, 'rb') as f:
+                self.encoder = pickle.load(f)
+            print("Loaded existing preprocessor from pkl.")
+            return self._apply_transformations(train, column_map)
+        else:
+            print("Fitting new encoders and transformations.")
+            # Initialize encoders based on column_map
+            for col_name, transform_type in column_map.items():
+                if transform_type == "standardize":
+                    self.encoder[col_name] = self._create_standardizer(train, col_name)
+                elif transform_type == "onehot_encode":
+                    self.encoder[col_name] = self._create_onehot_encoder(train, col_name)
+                elif transform_type == "timestamp_encode":
+                    self.encoder[col_name] = self._create_timestamp_encoder(train, col_name)
+                # For "no_transform", we do nothing (this will be handled in transform function)
+            
+            # Save the encoders to a file
+            with open(self.pkl_file, 'wb') as f:
+                pickle.dump(self.encoder, f)
+            
+            return self._apply_transformations(train, column_map)
 
-## Overview  
-This repository demonstrates how to efficiently connect to **MLZone** and utilize the **litdata** library to optimize data streaming for AI model training. The project leverages the **Generative AI Platform** to perform distributed, multi-node, and multi-GPU PyTorch training jobs.
+    def transform(self, test: DataFrame, column_map: Dict[str, str]) -> DataFrame:
+        """
+        Apply saved transformations to the test data.
+        """
+        if os.path.exists(self.pkl_file):
+            with open(self.pkl_file, 'rb') as f:
+                self.encoder = pickle.load(f)
+            print("Loaded existing preprocessor from pkl.")
+            return self._apply_transformations(test, column_map)
+        else:
+            raise FileNotFoundError(f"{self.pkl_file} not found. Please fit the model first.")
 
-## Key Features  
-- **Direct MLZone Connection**: Seamlessly integrates with MLZone for real-time data access.  
-- **Optimized Data Streaming**: Uses `litdata`'s `StreamingDataset` and `StreamingDataLoader` to efficiently stream large-scale datasets during training.  
-- **Distributed Training**: Supports Distributed Data Parallel (DDP) with multi-node, multi-GPU setups for scalable AI model training.  
-- **Generative AI Platform Integration**: Simplifies running and managing distributed training jobs on Generative AI infrastructure.
+    def _apply_transformations(self, df: DataFrame, column_map: Dict[str, str]) -> DataFrame:
+        """
+        Apply the transformations to the DataFrame based on the given column_map.
+        """
+        for col_name, transform_type in column_map.items():
+            if transform_type == "standardize" and col_name in self.encoder:
+                df = self.encoder[col_name].transform(df)
+            elif transform_type == "onehot_encode" and col_name in self.encoder:
+                df = self.encoder[col_name].transform(df)
+            elif transform_type == "timestamp_encode" and col_name in self.encoder:
+                df = self.encoder[col_name].transform(df)
+            # For "no_transform", we do nothing
 
-## Highlights  
-1. **litdata Optimization**:  
-   - Implements `optimize()` to compress data into chunks for improved I/O performance.  
-   - Supports stratified sampling to ensure balanced data streaming across GPUs.  
+        return df
 
-2. **Distributed Training**:  
-   - Fully integrated with PyTorch DDP for scalable training.  
-   - Designed for high-performance multi-node and multi-GPU environments.  
+    def _create_standardizer(self, df: DataFrame, col_name: str):
+        """
+        Create and fit a standardizer (StandardScaler) for a given column.
+        """
+        assembler = VectorAssembler(inputCols=[col_name], outputCol=f"{col_name}_vec")
+        df = assembler.transform(df)
+        scaler = StandardScaler(inputCol=f"{col_name}_vec", outputCol=f"{col_name}_scaled")
+        scaler_model = scaler.fit(df)
+        return scaler_model
 
-3. **Real-Time Data Pipeline**:  
-   - Streams data directly from MLZone to minimize preprocessing delays.  
-   - Ensures smooth, efficient training even with large datasets.  
+    def _create_onehot_encoder(self, df: DataFrame, col_name: str):
+        """
+        Create and fit a one-hot encoder for a given column.
+        """
+        indexer = StringIndexer(inputCol=col_name, outputCol=f"{col_name}_index")
+        indexed_df = indexer.fit(df).transform(df)
+        encoder = OneHotEncoder(inputCol=f"{col_name}_index", outputCol=f"{col_name}_onehot")
+        encoder_model = encoder.fit(indexed_df)
+        return encoder_model
 
-## Use Cases  
-- Training large-scale AI models using generative techniques.  
-- Applications requiring real-time or near-real-time data streaming for training.  
-- Multi-modal training scenarios where efficient data handling is critical.  
-
-This repository serves as a foundation for anyone looking to implement efficient data streaming and distributed training workflows in a scalable and high-performance setup.  
+    def _create_timestamp_encoder(self, df: DataFrame, col_name: str):
+        """
+        Create and fit a timestamp encoder for a given column.
+        """
+        return df.withColumn(f"{col_name}_encoded", unix_timestamp(col(col_name), 'yyyy-MM-dd HH:mm:ss').cast("double"))
