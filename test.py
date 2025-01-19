@@ -1,28 +1,31 @@
-def fit_transform(df, col_map):
-    stages = []  # Store the transformations
-    
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml import Pipeline
+
+def transform_with_vector(df, col_map):
+    # Create a list to store the columns that need to be assembled into a vector
+    vector_columns = []
+
+    # Go through the col_map to see which columns need transformation
     for col_name, transform_type in col_map.items():
-        if transform_type == "standardize":
-            # Standardize numerical columns
-            scaler = StandardScaler(inputCol=col_name, outputCol=f"{col_name}_scaled")
-            stages.append(scaler)
-        
-        elif transform_type == "onehot_encode":
-            # OneHotEncoding categorical columns
-            indexer = StringIndexer(inputCol=col_name, outputCol=f"{col_name}_indexed")
-            encoder = OneHotEncoder(inputCol=f"{col_name}_indexed", outputCol=f"{col_name}_onehot")
-            stages.append(indexer)
-            stages.append(encoder)
-        
-        elif transform_type == "no_transform":
-            # No transformation, just keep the column as is
-            pass
-
-    # Create a pipeline with the transformations
-    pipeline = Pipeline(stages=stages)
+        if transform_type == 'standardize':  # Assume this column needs to be in vector format
+            vector_columns.append(col_name)
     
-    # Fit and transform the data
-    model = pipeline.fit(df)
-    transformed_df = model.transform(df)
+    # Apply VectorAssembler if there are any columns to be vectorized
+    if vector_columns:
+        assembler = VectorAssembler(inputCols=vector_columns, outputCol="features")
+        df = assembler.transform(df)
 
-    return transformed_df, model
+    # Now `df` will have a new column "features" that contains the vectorized form of your numerical columns.
+    return df
+
+# Example: Transforming the DataFrame with the col_map
+col_map = {
+    "accountAge": "standardize",
+    "gender": "onehot_encode",
+    "name": "no_transform"
+}
+
+df_transformed = transform_with_vector(df, col_map)
+
+# Check the schema to ensure the vectorized column is created
+df_transformed.printSchema()
