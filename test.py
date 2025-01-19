@@ -1,82 +1,34 @@
-from pyspark.ml.feature import StringIndexer, OneHotEncoder, StandardScaler, VectorAssembler
+from pyspark.ml.functions import vector_to_array
 from pyspark.sql import functions as F
-from pyspark.ml import Pipeline
 
-def fit_transform(df, col_map):
+def expand_feature_column(df, feature_column):
     """
-    Transforms the DataFrame based on the column transformation map (col_map).
-    
+    Expands a feature vector column into multiple individual columns.
+    Drops the original feature vector column.
+
     Parameters:
-    df: pyspark.sql.DataFrame
-    col_map: dict - A dictionary where the keys are column names and the values are transformation types.
-        - 'standardize': Apply standard scaling.
-        - 'onehot_encode': Apply one-hot encoding.
-        - 'no_transform': No transformation (just pass the column).
+    df: pyspark.sql.DataFrame - Input DataFrame with a vector column.
+    feature_column: str - The name of the feature column that contains a vector.
     
     Returns:
-    pyspark.sql.DataFrame: Transformed DataFrame.
+    pyspark.sql.DataFrame - DataFrame with expanded columns and original vector column dropped.
     """
-    indexers = []
-    encoders = []
-    scalers = []
-    assembler_input_cols = []
-    output_columns = []
+    # Convert the vector to an array of values
+    df_with_array = df.withColumn(f"{feature_column}_array", vector_to_array(F.col(feature_column)))
     
-    # Process the col_map to generate the appropriate stages
-    for col_name, transform_type in col_map.items():
-        if transform_type == 'standardize':
-            # For 'standardize', we apply StandardScaler (or MinMaxScaler)
-            assembler_input_cols.append(col_name)
-            output_columns.append(f"{col_name}_scaled")
-        
-        elif transform_type == 'onehot_encode':
-            # For 'onehot_encode', we apply StringIndexer followed by OneHotEncoder
-            indexer = StringIndexer(inputCol=col_name, outputCol=f"{col_name}_index")
-            encoder = OneHotEncoder(inputCol=f"{col_name}_index", outputCol=f"{col_name}_encoded")
-            indexers.append(indexer)
-            encoders.append(encoder)
-        
-        elif transform_type == 'no_transform':
-            # For 'no_transform', we do nothing (just pass through the column)
-            output_columns.append(col_name)
+    # Get the number of features in the vector
+    num_features = len(df_with_array.select(f"{feature_column}_array").first()[0])  # Getting the length of the first row's array
     
-    # Apply StandardScaler for scaled features
-    if assembler_input_cols:
-        assembler = VectorAssembler(inputCols=assembler_input_cols, outputCol="features")
-        scaler = StandardScaler(inputCol="features", outputCol="scaled_features")
-        assembler_input_cols.append('scaled_features')
-        output_columns.append("scaled_features")
-        assembler_stages = [assembler, scaler]
-    else:
-        assembler_stages = []
+    # Create new columns from the array (each index of the array becomes a new column)
+    expanded_columns = []
+    for i in range(num_features):
+        expanded_columns.append(F.col(f"{feature_column}_array")[i].alias(f"{feature_column}_{i}"))
     
-    # Create pipeline with indexers, encoders, and scalers
-    stages = indexers + encoders + assembler_stages
+    # Select the original columns (excluding the vector column) and the new expanded columns
+    df_expanded = df_with_array.select(*df.columns, *expanded_columns).drop(feature_column, f"{feature_column}_array")
     
-    # Apply the pipeline to fit and transform the data
-    pipeline = Pipeline(stages=stages)
-    df_transformed = pipeline.fit(df).transform(df)
-    
-    # For standard scaling, expand the scaled features into separate columns
-    if assembler_input_cols:
-        # Separate the scaled features into individual columns
-        scaled_column_names = [f"{col}_scaled" for col in assembler_input_cols]
-        for i, col_name in enumerate(assembler_input_cols):
-            df_transformed = df_transformed.withColumn(scaled_column_names[i], df_transformed['scaled_features'].getItem(i))
-        df_transformed = df_transformed.drop("features", "scaled_features")
-    
-    # Drop the intermediate transformation columns for onehot encoding and return the result
-    final_columns = [col for col in df_transformed.columns if col in output_columns]
-    return df_transformed.select(*final_columns)
-
+    return df_expanded
 
 # Example usage
-col_map = {
-    'num_feature1': 'standardize',
-    'num_feature2': 'standardize',
-    'cat_feature1': 'onehot_encode',
-    'cat_feature2': 'no_transform'
-}
-
-df_transformed = fit_transform(df, col_map)
-df_transformed.show()
+df_expanded = expand_feature_column(df, 'scaled_feature')
+df_expanded.show()
