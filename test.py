@@ -1,31 +1,14 @@
-from pyspark.ml.feature import VectorAssembler
-from pyspark.ml import Pipeline
+from pyspark.sql.functions import col
 
-def transform_with_vector(df, col_map):
-    # Create a list to store the columns that need to be assembled into a vector
-    vector_columns = []
+# Get the column names and types from the DataFrame schema
+double_columns = [col_name for col_name, dtype in df.dtypes if dtype == "double"]
+string_columns = [col_name for col_name, dtype in df.dtypes if dtype == "string"]
 
-    # Go through the col_map to see which columns need transformation
-    for col_name, transform_type in col_map.items():
-        if transform_type == 'standardize':  # Assume this column needs to be in vector format
-            vector_columns.append(col_name)
-    
-    # Apply VectorAssembler if there are any columns to be vectorized
-    if vector_columns:
-        assembler = VectorAssembler(inputCols=vector_columns, outputCol="features")
-        df = assembler.transform(df)
+# Fill missing values for DoubleType columns with 0.0
+df_filled_double = df.fillna({col: 0.0 for col in double_columns})
 
-    # Now `df` will have a new column "features" that contains the vectorized form of your numerical columns.
-    return df
+# Fill missing values for StringType columns with "NA"
+df_filled = df_filled_double.fillna({col: "NA" for col in string_columns})
 
-# Example: Transforming the DataFrame with the col_map
-col_map = {
-    "accountAge": "standardize",
-    "gender": "onehot_encode",
-    "name": "no_transform"
-}
-
-df_transformed = transform_with_vector(df, col_map)
-
-# Check the schema to ensure the vectorized column is created
-df_transformed.printSchema()
+# Show the result
+df_filled.show()
