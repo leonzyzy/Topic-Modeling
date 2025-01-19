@@ -1,54 +1,60 @@
-from pyspark.ml.feature import VectorAssembler, StringIndexer, OneHotEncoder
 from pyspark.ml import Pipeline
-from pyspark.sql.functions import col
+from pyspark.ml.feature import StandardScaler, StringIndexer, OneHotEncoder
+from pyspark.sql import functions as F
+from pyspark.ml.feature import VectorAssembler
 
-def transform_with_vector(df, col_map):
-    # Create a list to store the columns that need to be assembled into a vector
-    vector_columns = []
-    indexers = []
-    encoders = []
+def fit_transform(df, col_map):
+    stages = []
     
-    # Go through the col_map to see which columns need transformation
+    # Iterate over each column in the col_map to apply the respective transformation
     for col_name, transform_type in col_map.items():
-        if transform_type == 'standardize':  # Numeric column, to be included in vector assembler
-            vector_columns.append(col_name)
-        elif transform_type == 'onehot_encode':  # Categorical column, to be one-hot encoded
-            # StringIndexer to convert categorical values into numeric indices
-            indexer = StringIndexer(inputCol=col_name, outputCol=col_name + "_index")
-            indexers.append(indexer)
+        
+        if transform_type == 'standardize':
+            # Standardize: Use StandardScaler to standardize the column
+            assembler = VectorAssembler(inputCols=[col_name], outputCol=col_name + "_vec")
+            scaler = StandardScaler(inputCol=col_name + "_vec", outputCol=col_name + "_scaled")
             
-            # OneHotEncoder to convert numeric indices into one-hot encoded vectors
+            stages += [assembler, scaler]
+        
+        elif transform_type == 'onehot_encode':
+            # OneHot Encode: Use StringIndexer and OneHotEncoder
+            indexer = StringIndexer(inputCol=col_name, outputCol=col_name + "_index")
             encoder = OneHotEncoder(inputCol=col_name + "_index", outputCol=col_name + "_onehot")
-            encoders.append(encoder)
+            
+            stages += [indexer, encoder]
+        
+        elif transform_type == 'no_transform':
+            # No transformation: Just keep the column as is (no-op)
+            pass
     
-    # Apply VectorAssembler if there are any columns to be vectorized
-    if vector_columns:
-        assembler = VectorAssembler(inputCols=vector_columns, outputCol="features")
-    
-    # Combine all transformations in a Pipeline
-    stages = indexers + encoders
-    if vector_columns:
-        stages.append(assembler)
-    
+    # Create a pipeline with the stages
     pipeline = Pipeline(stages=stages)
     
-    # Fit and transform the DataFrame using the pipeline
-    df_transformed = pipeline.fit(df).transform(df)
+    # Fit the pipeline and transform the data
+    model = pipeline.fit(df)
+    transformed_df = model.transform(df)
+    
+    # Handle one-hot encoding conversion
+    for col_name, transform_type in col_map.items():
+        if transform_type == 'onehot_encode':
+            # Convert the one-hot sparse vector to an array
+            transformed_df = transformed_df.withColumn(col_name + "_onehot_array", F.col(col_name + "_onehot").toArray())
+            
+            # If you want to break the array into individual columns:
+            num_categories = len(transformed_df.select(col_name + "_onehot_array").first()[0])  # Get number of categories
+            for i in range(num_categories):
+                transformed_df = transformed_df.withColumn(f"{col_name}_category_{i}", F.col(col_name + "_onehot_array")[i])
+            
+            # Drop intermediate columns like index and one-hot vector columns
+            transformed_df = transformed_df.drop(col_name + "_index", col_name + "_onehot", col_name + "_onehot_array")
+    
+    # Drop any extra temporary columns like vector columns used for scaling
+    drop_cols = []
+    for col_name, transform_type in col_map.items():
+        if transform_type == 'standardize':
+            drop_cols += [col_name + "_vec"]  # Drop vector columns used for scaling
 
-    # The resulting DataFrame will have the "features" column for standardized columns and "_onehot" columns for categorical ones.
-    return df_transformed
-
-# Example: Transforming the DataFrame with the col_map
-col_map = {
-    "accountAge": "standardize",  # Numeric column, will be included in VectorAssembler
-    "gender": "onehot_encode",    # Categorical column, will be one-hot encoded
-    "name": "no_transform"        # No transformation needed
-}
-
-df_transformed = transform_with_vector(df, col_map)
-
-# Check the schema to ensure the vectorized and one-hot encoded columns are created
-df_transformed.printSchema()
-
-# Show the transformed DataFrame
-df_transformed.show()
+    # Drop unnecessary columns and return the final DataFrame
+    transformed_df = transformed_df.drop(*drop_cols)
+    
+    return transformed_df
