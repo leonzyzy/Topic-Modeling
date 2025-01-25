@@ -1,3 +1,34 @@
+import os
+import torch
+import torch.distributed as dist
+import torch.nn as nn
+import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader, DistributedSampler, TensorDataset
+
+def setup_ddp():
+    """Initializes the process group for distributed training."""
+    dist.init_process_group(backend="nccl", init_method="env://")
+    torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
+
+def cleanup_ddp():
+    """Cleans up the process group."""
+    dist.destroy_process_group()
+
+class SimpleModel(nn.Module):
+    """A simple feedforward neural network."""
+    def __init__(self, input_size, hidden_size, output_size):
+        super(SimpleModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        return x
+
 def train(rank, world_size, epochs=5):
     setup_ddp()
 
@@ -39,3 +70,11 @@ def train(rank, world_size, epochs=5):
             print(f"[Rank {rank}] Epoch {epoch + 1}, Loss: {loss.item()}")
 
     cleanup_ddp()
+
+if __name__ == "__main__":
+    # Get the rank and world size from the environment variables
+    rank = int(os.environ["LOCAL_RANK"])
+    world_size = int(os.environ["WORLD_SIZE"])
+
+    # Run the training function
+    train(rank, world_size)
