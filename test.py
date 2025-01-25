@@ -4,9 +4,9 @@ for epoch in range(args["epochs"]):
     total_train_loss = 0
     total_val_loss = 0
 
-    # Ensure validation loader is iterable
-    val_iter = iter(val_loader)
-
+    # Total batches for logging progress
+    total_train_batches = len(train_loader)
+    
     for batch_idx, (train_data, train_target) in enumerate(train_loader):
         # Training step
         train_data, train_target = train_data.cuda(rank), train_target.cuda(rank)
@@ -17,27 +17,21 @@ for epoch in range(args["epochs"]):
         optimizer.step()
         total_train_loss += train_loss.item()
 
-        # Fetch the next validation batch
-        try:
-            val_data, val_target = next(val_iter)
+        # Validation step (compute for the current batch)
+        model.eval()  # Switch to evaluation mode for validation
+        with torch.no_grad():
+            val_data, val_target = next(iter(val_loader))  # Get the next validation batch
             val_data, val_target = val_data.cuda(rank), val_target.cuda(rank)
-            model.eval()  # Switch to evaluation mode for validation
-            with torch.no_grad():
-                val_output = model(val_data)
-                val_loss = criterion(val_output, val_target)
-                total_val_loss += val_loss.item()
-            
-            model.train()  # Switch back to training mode
+            val_output = model(val_data)
+            val_loss = criterion(val_output, val_target)
+            total_val_loss += val_loss.item()
 
-            if rank == 0:  # Log the training and validation loss
-                print(f"Epoch {epoch + 1}, Batch {batch_idx + 1}: "
-                      f"Train Loss = {train_loss.item():.4f}, Val Loss = {val_loss.item():.4f}")
-        
-        except StopIteration:
-            # If the validation dataset is smaller and we run out of batches, skip validation for remaining train batches
-            if rank == 0:
-                print(f"Epoch {epoch + 1}, Batch {batch_idx + 1}: "
-                      f"Train Loss = {train_loss.item():.4f}, Val Loss = N/A")
+        model.train()  # Switch back to training mode
+
+        if rank == 0:  # Log the training and validation loss
+            print(f"Epoch {epoch + 1}, Batch {batch_idx + 1}/{total_train_batches}: "
+                  f"Train Loss = {train_loss.item():.4f}, "
+                  f"Val Loss = {val_loss.item():.4f}")
 
     # Compute average loss for the epoch
     avg_train_loss = total_train_loss / len(train_loader)
