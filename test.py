@@ -1,80 +1,54 @@
-import os
-import torch
-import torch.distributed as dist
-import torch.nn as nn
-import torch.optim as optim
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data import DataLoader, DistributedSampler, TensorDataset
+for epoch in range(args["epochs"]):
+    model.train()
+    train_sampler.set_epoch(epoch)
+    total_train_loss = 0
+    total_val_loss = 0
 
-def setup_ddp():
-    """Initializes the process group for distributed training."""
-    dist.init_process_group(backend="nccl", init_method="env://")
-    torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
+    # Ensure validation loader is iterable
+    val_iter = iter(val_loader)
 
-def cleanup_ddp():
-    """Cleans up the process group."""
-    dist.destroy_process_group()
+    for batch_idx, (train_data, train_target) in enumerate(train_loader):
+        # Training step
+        train_data, train_target = train_data.cuda(rank), train_target.cuda(rank)
+        optimizer.zero_grad()
+        train_output = model(train_data)
+        train_loss = criterion(train_output, train_target)
+        train_loss.backward()
+        optimizer.step()
+        total_train_loss += train_loss.item()
 
-class SimpleModel(nn.Module):
-    """A simple feedforward neural network."""
-    def __init__(self, input_size, hidden_size, output_size):
-        super(SimpleModel, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size, output_size)
+        # Fetch the next validation batch
+        try:
+            val_data, val_target = next(val_iter)
+            val_data, val_target = val_data.cuda(rank), val_target.cuda(rank)
+            model.eval()  # Switch to evaluation mode for validation
+            with torch.no_grad():
+                val_output = model(val_data)
+                val_loss = criterion(val_output, val_target)
+                total_val_loss += val_loss.item()
+            
+            model.train()  # Switch back to training mode
 
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        return x
+            if rank == 0:  # Log the training and validation loss
+                print(f"Epoch {epoch + 1}, Batch {batch_idx + 1}: "
+                      f"Train Loss = {train_loss.item():.4f}, Val Loss = {val_loss.item():.4f}")
+        
+        except StopIteration:
+            # If the validation dataset is smaller and we run out of batches, skip validation for remaining train batches
+            if rank == 0:
+                print(f"Epoch {epoch + 1}, Batch {batch_idx + 1}: "
+                      f"Train Loss = {train_loss.item():.4f}, Val Loss = N/A")
 
-def train(rank, world_size, epochs=5):
-    setup_ddp()
+    # Compute average loss for the epoch
+    avg_train_loss = total_train_loss / len(train_loader)
+    avg_val_loss = total_val_loss / len(val_loader)
 
-    # Device setup
-    device = torch.device(f"cuda:{int(os.environ['LOCAL_RANK'])}")
-
-    # Dataset and DataLoader
-    input_size, hidden_size, output_size = 10, 50, 1
-    batch_size = 32
-
-    # Create dummy data
-    num_samples = 1000
-    x = torch.randn(num_samples, input_size)
-    y = torch.randn(num_samples, output_size)
-
-    dataset = TensorDataset(x, y)
-    sampler = DistributedSampler(dataset)
-    dataloader = DataLoader(dataset, batch_size=batch_size, sampler=sampler)
-
-    # Model, loss, and optimizer
-    model = SimpleModel(input_size, hidden_size, output_size).to(device)
-    model = DDP(model, device_ids=[int(os.environ["LOCAL_RANK"])])
-    criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.01)
-
-    # Training loop
-    for epoch in range(epochs):
-        sampler.set_epoch(epoch)  # Shuffle data across ranks
-        for batch_x, batch_y in dataloader:
-            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-
-            optimizer.zero_grad()
-            outputs = model(batch_x)
-            loss = criterion(outputs, batch_y)
-            loss.backward()
-            optimizer.step()
-
-            # Print loss for each rank
-            print(f"[Rank {rank}] Epoch {epoch + 1}, Loss: {loss.item()}")
-
-    cleanup_ddp()
-
-if __name__ == "__main__":
-    # Get the rank and world size from the environment variables
-    rank = int(os.environ["LOCAL_RANK"])
-    world_size = int(os.environ["WORLD_SIZE"])
-
-    # Run the training function
-    train(rank, world_size)
+    if rank == 0:
+        print(f"Epoch {epoch + 1} Summary: Avg Train Loss = {avg_train_loss:.4f}, Avg Val Loss = {avg_val_loss:.4f}")
+    
+    # Save model at the end of each epoch
+    if rank == 0:
+        if isinstance(model, torch.nn.parallel.DistributedDataParallel):
+            torch.save(model.module.state_dict(), f"model_epoch_{epoch + 1}.pt")
+        else:
+            torch.save(model.state_dict(), f"model_epoch_{epoch + 1}.pt")
