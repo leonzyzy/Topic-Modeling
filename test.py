@@ -10,4 +10,9 @@ Label: Process Flaw
 1. Agents erroneously manually debited accounts for the amounts of prior past-due fee waivers.  
 2. While attempting to apply a credit to the most recent past-due fee, agents mistakenly applied a debit instead, resulting in an error.  
 3. In WCSA, the agent selected the previous fee credit instead of the actual fee charged during that cycle.  
-4. Agents did not follow the outlined steps in the "waivers" task, specifically for past-due fee, cash advance fee, and interest.  
+4. Agents did not follow the outlined steps in the "waivers" task, which covers past-due fees, cash advance fees, and interest.
+
+@@Chain of Thought:   
+1. Statements were not mailed within the required timeframe.  
+2. RR Donnelly's reprocessed statements and additional volume redirected to Fiserv were not able to be processed timely.  
+3. The delay in processing was caused by issues with third-party service providers, affecting the timely delivery of statements.  
