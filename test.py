@@ -1,48 +1,7 @@
-for epoch in range(args["epochs"]):
-    model.train()
-    train_sampler.set_epoch(epoch)
-    total_train_loss = 0
-    total_val_loss = 0
+Label: Process Flaw  
 
-    # Total batches for logging progress
-    total_train_batches = len(train_loader)
-    
-    for batch_idx, (train_data, train_target) in enumerate(train_loader):
-        # Training step
-        train_data, train_target = train_data.cuda(rank), train_target.cuda(rank)
-        optimizer.zero_grad()
-        train_output = model(train_data)
-        train_loss = criterion(train_output, train_target)
-        train_loss.backward()
-        optimizer.step()
-        total_train_loss += train_loss.item()
-
-        # Validation step (compute for the current batch)
-        model.eval()  # Switch to evaluation mode for validation
-        with torch.no_grad():
-            val_data, val_target = next(iter(val_loader))  # Get the next validation batch
-            val_data, val_target = val_data.cuda(rank), val_target.cuda(rank)
-            val_output = model(val_data)
-            val_loss = criterion(val_output, val_target)
-            total_val_loss += val_loss.item()
-
-        model.train()  # Switch back to training mode
-
-        if rank == 0:  # Log the training and validation loss
-            print(f"Epoch {epoch + 1}, Batch {batch_idx + 1}/{total_train_batches}: "
-                  f"Train Loss = {train_loss.item():.4f}, "
-                  f"Val Loss = {val_loss.item():.4f}")
-
-    # Compute average loss for the epoch
-    avg_train_loss = total_train_loss / len(train_loader)
-    avg_val_loss = total_val_loss / len(val_loader)
-
-    if rank == 0:
-        print(f"Epoch {epoch + 1} Summary: Avg Train Loss = {avg_train_loss:.4f}, Avg Val Loss = {avg_val_loss:.4f}")
-    
-    # Save model at the end of each epoch
-    if rank == 0:
-        if isinstance(model, torch.nn.parallel.DistributedDataParallel):
-            torch.save(model.module.state_dict(), f"model_epoch_{epoch + 1}.pt")
-        else:
-            torch.save(model.state_dict(), f"model_epoch_{epoch + 1}.pt")
+@@Chain of Thought:  
+1. Lost, stolen, and failed transactions were accounted for in reporting fraud claims.  
+2. When transactions were captured in the failure report, agents were unable to determine how to care for customer needs.  
+3. Agents did not have the necessary information to assess the required next steps for transactions populating on the report.  
+4. The procedures for managing the monitoring reports were incomplete, as the team did not have detailed instructions to handle this process before it was added to their work.  
