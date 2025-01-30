@@ -1,24 +1,31 @@
-Label: Process Flaw  
+import torch
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-@@Chain of Thought:  
-1. Lost, stolen, and failed transactions were accounted for in reporting fraud claims.  
-2. When transactions were captured in the failure report, agents were unable to determine how to care for customer needs.  
-3. Agents did not have the necessary information to assess the required next steps for transactions populating on the report.  
-4. The procedures for managing the monitoring reports were incomplete, as the team did not have detailed instructions to handle this process before it was added to their work.  
+# Assuming model is already on GPU (e.g., model.to(device))
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-@@Chain of Thought:  
-1. Agents erroneously manually debited accounts for the amounts of prior past-due fee waivers.  
-2. While attempting to apply a credit to the most recent past-due fee, agents mistakenly applied a debit instead, resulting in an error.  
-3. In WCSA, the agent selected the previous fee credit instead of the actual fee charged during that cycle.  
-4. Agents did not follow the outlined steps in the "waivers" task, which covers past-due fees, cash advance fees, and interest.
+# Extract attention weights using model.named_parameters()
+attention_weights = {}
 
-@@Chain of Thought:   
-1. Statements were not mailed within the required timeframe.  
-2. RR Donnelly's reprocessed statements and additional volume redirected to Fiserv were not able to be processed timely.  
-3. The delay in processing was caused by issues with third-party service providers, affecting the timely delivery of statements.  
+# Loop through named parameters
+for name, param in model.named_parameters():
+    if 'self_attn' in name:  # Identify attention parameters
+        print(f"Found {name} of size {param.size()}")
+        attention_weights[name] = param
 
-@@Chain of Thought:  
-1. The financial adjustment is failing and not appearing on the Empath Exceptions (EE) report.  
-2. The worked transactions are excluded due to previous financial failures being worked by intent.  
-3. The issue was caused by an error missed during the creation of the script, leading to the exclusion of certain customer populations.  
-4. This flaw in the system prevents proper reporting and adjustment of transactions for affected customers.  
+# Visualize one of the self-attention weights (for example, in_proj_weight)
+# Assuming 'self_attn.in_proj_weight' exists and is a matrix of shape [3 * d_model, d_model]
+if 'encoder.layers.0.self_attn.in_proj_weight' in attention_weights:
+    in_proj_weight = attention_weights['encoder.layers.0.self_attn.in_proj_weight']
+
+    # Move to CPU if it's on GPU
+    in_proj_weight_cpu = in_proj_weight.cpu().detach().numpy()
+
+    # Visualize as heatmap
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(in_proj_weight_cpu, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+    plt.title("Attention Weights (in_proj_weight)")
+    plt.xlabel("Input Features")
+    plt.ylabel("Attention Weights")
+    plt.show()
