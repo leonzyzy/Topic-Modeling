@@ -129,3 +129,73 @@ class TabularDataset(Dataset):
     def __getitem__(self, idx):
         return (self.X_num[idx], self.X_cat[idx]), self.y[idx]  # Return as tuple
 
+
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import rtdl
+
+class FTTransformerWithAttention(rtdl.FTTransformer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.attention_weights = None  # Store attention matrix
+
+    def forward(self, x_num, x_cat=None):
+        """Forward pass with attention storage."""
+        x = self.embed(x_num, x_cat)  # Embed numerical & categorical features
+
+        # Hook function to capture attention matrix
+        def hook(module, input, output):
+            self.attention_weights = module.attn.attn_weights  # Store attention
+
+        # Register hook on the first transformer block
+        self.blocks[0].attn.register_forward_hook(hook)
+
+        return super().forward(x_num, x_cat)
+
+# Example: Define model
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = FTTransformerWithAttention.make_default(
+    n_num_features=len(numerical_cols),
+    cat_cardinalities=cat_cardinalities,
+    d_out=2
+).to(device)
+
+# Define loss & optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.AdamW(model.parameters(), lr=1e-3)
+
+# Training Loop (Updated)
+num_epochs = 10
+for epoch in range(num_epochs):
+    model.train()
+    total_loss = 0
+
+    for (X_batch_num, X_batch_cat), y_batch in train_loader:
+        X_batch_num, X_batch_cat, y_batch = (
+            X_batch_num.to(device),
+            X_batch_cat.to(device),
+            y_batch.to(device),
+        )
+
+        optimizer.zero_grad()
+        output = model(X_batch_num, X_batch_cat)  # ✅ Pass both numerical & categorical features
+        loss = criterion(output, y_batch)
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item()
+
+    avg_loss = total_loss / len(train_loader)
+    print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}")
+
+# Extract Attention Matrix After Training
+with torch.no_grad():
+    sample_num, sample_cat = next(iter(test_loader))  # Get a batch
+    sample_num, sample_cat = sample_num.to(device), sample_cat.to(device)
+
+    _ = model(sample_num, sample_cat)  # Run model once to get attention
+
+attention_matrix = model.attention_weights  # Shape: (batch_size, num
+
