@@ -199,3 +199,4 @@ with torch.no_grad():
 
 attention_matrix = model.attention_weights  # Shape: (batch_size, num
 
+df_filled = df.apply(lambda col: col.fillna(0) if col.dtype != 'object' else col.fillna("NA"))
