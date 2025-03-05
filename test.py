@@ -1,1 +1,1 @@
-refers to situations where the established procedures, instructions, or guidelines are either incomplete, outdated, or not followed correctly, leading to errors, inefficiencies, or failure to meet operational goals. 
+refers to instances where employees or teams do not adhere to the established procedures, regardless of their accuracy or completeness.
