@@ -1,1 +1,5 @@
-The issue stems from inadequate or inaccurate procedures because agents relied on misleading report data, which led them to incorrectly assume an LSRP was needed before applying credits. The documented process failed to outline this specific scenario and did not provide clear guidance on required actions. Additionally, there was no validation step to ensure agents handled these cases correctly, creating a procedural gap that resulted in errors.
+This issue falls under Inadequate / Failed Change Management - System because:
+
+Failure to update the script – When Visa migrated to Empath, the "Missing Debits" report script was not updated to reflect the change, leading to Visa accounts being excluded.
+Lack of ownership – There was no clearly defined intent owner responsible for maintaining and updating the report, which caused the oversight to go unaddressed.
+Communication breakdown – The TiVo team, responsible for maintaining the script, was not properly informed of the need to remove Visa exclusions.
