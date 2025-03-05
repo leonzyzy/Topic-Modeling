@@ -1,7 +1,5 @@
-Improper Case Prioritization – Empath failed to prioritize cases correctly after they were reclassified. This indicates that the system's logic or the code responsible for managing case priorities was not functioning as intended.
+Backlog Due to High Volume – The influx in queue volume created a backlog for the team, which indicates that the team was unable to handle the increased workload effectively. This points to an issue with staffing levels or team capacity, as they were not equipped to manage the higher volume of work.
 
-Gaps in Logic – There were gaps in the Empath logic that caused cases not to be reclassified successfully. These gaps suggest a flaw in the design or coding of the system, where the necessary functionality was either not fully implemented or was improperly coded.
+Team Unprepared for Higher Workload – The team was not ready to take on higher volumes of work, suggesting that the staffing or resourcing for this team was not sufficient or appropriately managed to meet the increased demand.
 
-Failure to Trigger Action – The system did not trigger the necessary actions (e.g., notifying the Back Office team or prioritizing cases) after cases were reclassified, highlighting a failure in how the application or system was designed to handle case workflows.
-
-Missed Cases – Cases were not worked within the desired timeframe because they were not properly flagged or identified by the system. This further points to an issue in how the system was designed to track and manage cases.
+Inadequate Forecasting for Production Bandwidth – The process changes sent more cases to the catch-all queue without proper forecasting for production bandwidth, which could have been addressed by adjusting staffing levels or resources. The inability to handle the higher workload points to insufficient or inappropriate staffing planning.
