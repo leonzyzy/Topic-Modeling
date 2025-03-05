@@ -1,4 +1,3 @@
-Incorrect logic implementation – The Vintage system did not accurately convert TSYS payment history due to misalignment in data handling.
-Limited scope in code design – The code was originally designed only for Whirl accounts but was mistakenly applied to all account types, leading to errors.
-Lack of testing – Since this was a new process for TSYS purged accounts, there was no available test data, which led to undetected issues before deployment.
-Failure to adapt system changes properly – The tech team did not fully account for how the payment history rebuild would affect all account types, causing system misalignment.
+System Limitation – The TSYS screen (MAHB) was only designed to update the high balance value, not the history, indicating a functional constraint in the system.
+Lack of Manual Override – The application does not allow for a manual update of high balance history, preventing corrections when needed.
+Process Deficiency – The process was not designed to address or compensate for the system's inability to update history, leading to incomplete data.
