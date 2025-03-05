@@ -1,7 +1,7 @@
-Static Table Not Refreshed – The original table used to pull the population for the Trailing Transactions report was static and not refreshed, which means the system design didn't account for the need to update data regularly. This indicates a flaw in the design or coding of the system, as it failed to function as intended over time.
+Improper Case Prioritization – Empath failed to prioritize cases correctly after they were reclassified. This indicates that the system's logic or the code responsible for managing case priorities was not functioning as intended.
 
-Report Failing to Populate Correct Data – The Trailing Transactions report was not populating the necessary information to be shared with operations to work, pointing to a coding issue in how the data was retrieved and presented.
+Gaps in Logic – There were gaps in the Empath logic that caused cases not to be reclassified successfully. These gaps suggest a flaw in the design or coding of the system, where the necessary functionality was either not fully implemented or was improperly coded.
 
-New Table Created but Duplicative Cases – When a new table was created to replace the static one, it populated duplicative and outdated cases. This indicates an issue in how the new table was designed or coded to handle data, further emphasizing a failure in the system's development and implementation.
+Failure to Trigger Action – The system did not trigger the necessary actions (e.g., notifying the Back Office team or prioritizing cases) after cases were reclassified, highlighting a failure in how the application or system was designed to handle case workflows.
 
-Failure to Address Process Needs – The system was not designed to ensure that transactions were pulled properly and consistently, resulting in a backlog and missed transactions. This lack of foresight and attention to the ongoing refresh and accuracy of data is a design and coding issue.
+Missed Cases – Cases were not worked within the desired timeframe because they were not properly flagged or identified by the system. This further points to an issue in how the system was designed to track and manage cases.
