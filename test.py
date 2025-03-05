@@ -1,5 +1,4 @@
-This issue falls under Inadequate / Failed Change Management - System because:
-
-Failure to update the script – When Visa migrated to Empath, the "Missing Debits" report script was not updated to reflect the change, leading to Visa accounts being excluded.
-Lack of ownership – There was no clearly defined intent owner responsible for maintaining and updating the report, which caused the oversight to go unaddressed.
-Communication breakdown – The TiVo team, responsible for maintaining the script, was not properly informed of the need to remove Visa exclusions.
+Incorrect logic implementation – The Vintage system did not accurately convert TSYS payment history due to misalignment in data handling.
+Limited scope in code design – The code was originally designed only for Whirl accounts but was mistakenly applied to all account types, leading to errors.
+Lack of testing – Since this was a new process for TSYS purged accounts, there was no available test data, which led to undetected issues before deployment.
+Failure to adapt system changes properly – The tech team did not fully account for how the payment history rebuild would affect all account types, causing system misalignment.
