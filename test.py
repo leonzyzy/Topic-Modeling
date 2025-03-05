@@ -1,1 +1,1 @@
-refers to a disconnect or misalignment between the intended business goals or objectives and the execution of processes, systems, or workflows. This gap occurs when the business rules, requirements, or priorities are not clearly defined, understood, or communicated, leading to unintended outcomes or failure to meet desired objectives. 
+refers to situations where the established procedures, instructions, or guidelines are either incomplete, outdated, or not followed correctly, leading to errors, inefficiencies, or failure to meet operational goals. 
