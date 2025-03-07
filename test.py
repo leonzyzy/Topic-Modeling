@@ -1,4 +1,15 @@
-Past due history not updated properly: This suggests that the data tracking system or process for monitoring customer accounts is not functioning effectively, leading to improper updates.
-Catch and fix report not worked on: This indicates that there is no proper follow-through or action on issues identified by reports, implying a lack of proper business oversight.
-Inconsistent guidance: Multiple agent groups receiving conflicting guidance about handling the report highlights a lack of standardized procedures and oversight in managing the report.
-Inadequate governance of the report procedure: This suggests a failure in proper business governance and oversight, meaning the process for tracking and reporting issues is not being effectively monitored or enforced across the teams and locations.
+class AccountDataset(Dataset):
+    def __init__(self, data_dict):
+        self.account_ids = list(data_dict.keys())  # List of account IDs
+        self.features = [data_dict[acc]['features'] for acc in self.account_ids]  # Extract features
+        self.targets = [data_dict[acc]['target'] for acc in self.account_ids]  # Extract targets
+
+        # Convert to tensors if necessary
+        self.features = torch.tensor(self.features, dtype=torch.float32)
+        self.targets = torch.tensor(self.targets, dtype=torch.float32)
+
+    def __len__(self):
+        return len(self.account_ids)
+
+    def __getitem__(self, idx):
+        return self.features[idx], self.targets[idx]
