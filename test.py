@@ -1,1 +1,4 @@
-the main issue described is that the agents were unable to keep up with the increased demand due to a spike in volumes. This indicates that the staffing levels or the resources available were not adequate to handle the surge in customer requests, leading to delays in processing.
+Past due history not updated properly: This suggests that the data tracking system or process for monitoring customer accounts is not functioning effectively, leading to improper updates.
+Catch and fix report not worked on: This indicates that there is no proper follow-through or action on issues identified by reports, implying a lack of proper business oversight.
+Inconsistent guidance: Multiple agent groups receiving conflicting guidance about handling the report highlights a lack of standardized procedures and oversight in managing the report.
+Inadequate governance of the report procedure: This suggests a failure in proper business governance and oversight, meaning the process for tracking and reporting issues is not being effectively monitored or enforced across the teams and locations.
