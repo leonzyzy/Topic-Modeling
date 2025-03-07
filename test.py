@@ -1,3 +1,3 @@
- The intent behind the settlement process was clear—to fulfill settlements accurately. However, the business logic was misapplied (the script was looking at the total charge-off balance instead of the balance at the time of settlement), which reflects a gap in the intended business execution.
-
-Process Flow: The execution process itself (the script that handles settlement fulfillment) was flawed. It operated on the wrong balance, causing an issue in the workflow that was designed to handle settlements.
+Connectivity Issue – AWS connectivity failure on a specific date could indicate a capacity issue, such as network congestion, insufficient resources, or server overload, which disrupted file generation.
+Disruption of File Generation – The error prevented the BK marking file from being processed due to the inability to connect to AWS resources, suggesting that the system was unable to handle the load or perform as expected under the conditions at that time.
+Performance Deficiency – If the infrastructure wasn't optimized to handle the required task, it could lead to delays or failures in file generation.
