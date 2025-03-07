@@ -1,11 +1,13 @@
-# Padding function
+from torch.nn.utils.rnn import pad_sequence
+
 def collate_fn(batch):
     features, targets = zip(*batch)  # Separate features and targets
 
-    # Pad matrices to the same size (batch_first=True makes shape [batch, max_rows, num_features])
+    # Pad features
     padded_features = pad_sequence(features, batch_first=True, padding_value=0)
-    
-    # Stack targets as a tensor
-    targets = torch.stack(targets)
 
-    return padded_features, targets
+    # Pad targets (if necessary, assuming they are 1D lists or tensors)
+    padded_targets = pad_sequence([torch.tensor(tgt, dtype=torch.float32) for tgt in targets], 
+                                  batch_first=True, padding_value=0)
+    
+    return padded_features, padded_targets
