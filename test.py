@@ -1,4 +1,4 @@
-Statement Suppression Flag Not Removed – This suggests a flaw in the application logic or coding, where the system did not properly update or clear suppression flags.
-Address Updates Not Triggering Mailings – Indicates a potential system design issue where changes in address data were not correctly linked to statement mailings.
-Backup BOT Failure – A failure in automated controls suggests issues in system execution, monitoring, or testing.
-Process Failure Due to Design, Execution, and Operational Flaws – The statement explicitly attributes the problem to systemic flaws, reinforcing that the root cause is linked to inadequate application/system design, coding, or testing.
+Lack of Monitoring for Fraud Application Status Changes – There was no system in place to track when fraud-flagged accounts should have their restrictions lifted, leading to prolonged restrictions.
+Missed Historical Defects – The control implemented in June 2022 was designed to detect and resolve these issues but did not perform a lookback to identify past cases, indicating insufficient historical monitoring.
+Failure in Reporting Design – The report was intended to detect and correct affected accounts but was not built to retroactively address cases that occurred before its implementation, showing a gap in business oversight.
+Dependence on Manual Discovery – The secured card team had to identify the issue themselves, rather than it being proactively flagged by automated monitoring or reports.
