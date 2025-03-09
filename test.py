@@ -1,22 +1,4 @@
-class AccountDataset(Dataset):
-    def __init__(self, data_dict, targets):
-        self.account_ids = list(data_dict.keys())
-        self.features = [torch.tensor(data_dict[acc], dtype=torch.float32) for acc in self.account_ids]
-        self.targets = [torch.tensor(targets[acc], dtype=torch.float32) for acc in self.account_ids]
-
-        # Find the max length of the feature matrices and target sequences
-        self.max_feature_length = max([feature.shape[0] for feature in self.features])
-        self.max_target_length = 1  # Assuming scalar targets, no need to pad
-
-    def __len__(self):
-        return len(self.account_ids)
-
-    def __getitem__(self, idx):
-        feature = self.features[idx]
-        target = self.targets[idx]
-        
-        # Pad feature matrix to global maximum length
-        padded_feature = torch.cat([feature, torch.zeros(self.max_feature_length - feature.shape[0], feature.shape[1])], dim=0)
-        
-        # Return padded feature and target
-        return padded_feature, target
+Statement Suppression Flag Not Removed – This suggests a flaw in the application logic or coding, where the system did not properly update or clear suppression flags.
+Address Updates Not Triggering Mailings – Indicates a potential system design issue where changes in address data were not correctly linked to statement mailings.
+Backup BOT Failure – A failure in automated controls suggests issues in system execution, monitoring, or testing.
+Process Failure Due to Design, Execution, and Operational Flaws – The statement explicitly attributes the problem to systemic flaws, reinforcing that the root cause is linked to inadequate application/system design, coding, or testing.
