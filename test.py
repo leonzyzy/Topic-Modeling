@@ -1,1 +1,1 @@
- the gaps in force logic resulted from insufficient testing, which is a critical part of system change management. Proper change management should include thorough validation and scenario testing to prevent such issues.
+the lack of documented steps, misalignment of expectations, and failure to assign responsible parties indicate procedural weaknesses. Proper documentation and clear execution steps are essential for ensuring that e
