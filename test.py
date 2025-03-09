@@ -1,4 +1,3 @@
-Backlog Due to Increased Volume – The influx of cases led to a backlog, suggesting that the team did not have enough staff or capacity to handle the workload efficiently.
-Team Was Not Prepared for Higher Work Volume – This indicates that staffing levels were not adequately planned to meet the demand.
-More Cases Sent to the Catch-All Queue – A growing queue suggests that there were either too few people assigned to process the cases or an inefficient allocation of resources.
-Process Changes Without Proper Forecasting – This implies that workforce planning did not account for production bandwidth, leading to a staffing mismatch.
+Unclear Change Management – The lack of clear ownership and communication about how fraud intent interacts with security deposit intent suggests a failure in properly managing the change.
+Lack of Intent Ownership – The absence of clear accountability for defining and overseeing these interactions indicates weak process governance.
+Process-Level Issue – This is not a system or coding failure but rather a failure in structuring and communicating procedural changes effectively.
