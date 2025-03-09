@@ -1,4 +1,4 @@
-Lack of Monitoring for Fraud Application Status Changes – There was no system in place to track when fraud-flagged accounts should have their restrictions lifted, leading to prolonged restrictions.
-Missed Historical Defects – The control implemented in June 2022 was designed to detect and resolve these issues but did not perform a lookback to identify past cases, indicating insufficient historical monitoring.
-Failure in Reporting Design – The report was intended to detect and correct affected accounts but was not built to retroactively address cases that occurred before its implementation, showing a gap in business oversight.
-Dependence on Manual Discovery – The secured card team had to identify the issue themselves, rather than it being proactively flagged by automated monitoring or reports.
+Backlog Due to Increased Volume – The influx of cases led to a backlog, suggesting that the team did not have enough staff or capacity to handle the workload efficiently.
+Team Was Not Prepared for Higher Work Volume – This indicates that staffing levels were not adequately planned to meet the demand.
+More Cases Sent to the Catch-All Queue – A growing queue suggests that there were either too few people assigned to process the cases or an inefficient allocation of resources.
+Process Changes Without Proper Forecasting – This implies that workforce planning did not account for production bandwidth, leading to a staffing mismatch.
