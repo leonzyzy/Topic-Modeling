@@ -6,6 +6,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from sklearn.metrics import roc_auc_score, average_precision_score
 import argparse
+from torchmetrics.classification import Accuracy, Precision, Recall, F1Score, FBetaScore, ROCAUC, AveragePrecision
 
 # Sample dataset class for testing purposes
 class SampleDataset(Dataset):
@@ -37,14 +38,13 @@ def init_distributed_mode(args):
 # Evaluation function to compute the metrics
 def evaluate(model, dataloader, device):
     model.eval()
-    accuracy_metric = torchmetrics.classification.Accuracy().to(device)
-    precision_metric = torchmetrics.classification.Precision(num_classes=2).to(device)
-    recall_metric = torchmetrics.classification.Recall(num_classes=2).to(device)
-    f1_metric = torchmetrics.classification.F1Score(num_classes=2).to(device)
-    f05_metric = torchmetrics.classification.FBetaScore(beta=0.5, num_classes=2).to(device)
-    roc_auc_metric = torchmetrics.classification.ROCAUC(num_classes=2).to(device)
-    pr_auc_metric = torchmetrics.classification.AveragePrecision(num_classes=2).to(device)
-
+    accuracy_metric = Accuracy(num_classes=2, dist_sync_on_step=True).to(device)
+    precision_metric = Precision(num_classes=2, dist_sync_on_step=True).to(device)
+    recall_metric = Recall(num_classes=2, dist_sync_on_step=True).to(device)
+    f1_metric = F1Score(num_classes=2, dist_sync_on_step=True).to(device)
+    f05_metric = FBetaScore(beta=0.5, num_classes=2, dist_sync_on_step=True).to(device)
+    roc_auc_metric = ROCAUC(num_classes=2, dist_sync_on_step=True).to(device)
+    pr_auc_metric = AveragePrecision(num_classes=2, dist_sync_on_step=True).to(device)
     # Collect metrics
     with torch.no_grad():
         all_preds = []
