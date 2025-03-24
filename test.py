@@ -1,81 +1,39 @@
-import torch
-import torch.distributed as dist
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
-from torch.nn.parallel import DistributedDataParallel as DDP
-import torchmetrics
+Example
+number of 'Process Flaw' risk events quarterly:
+-> (2021Q1: 3) -> (2021Q2: 5) -> (2021Q3: 6) -> (2021Q4: 8) -> (2022Q1: 7) -> (2022Q2: 9) -> (2022Q3: 10) -> (2022Q4: 12) -> (2023Q1: 11) -> (2023Q2: 9) -> (2023Q3: 8) -> (2023Q4: 7)
 
-class DummyDataset(Dataset):
-    def __init__(self, size=1000):
-        self.data = torch.randn(size, 10)
-        self.labels = torch.randint(0, 2, (size,))
+number of 'Third Party Error' risk events quarterly:
+-> (2021Q1: 4) -> (2021Q2: 6) -> (2021Q3: 7) -> (2021Q4: 9) -> (2022Q1: 10) -> (2022Q2: 8) -> (2022Q3: 6) -> (2022Q4: 7) -> (2023Q1: 5) -> (2023Q2: 4) -> (2023Q3: 3) -> (2023Q4: 3)
 
-    def __len__(self):
-        return len(self.data)
+number of 'Associate Error' risk events quarterly:
+-> (2021Q1: 5) -> (2021Q2: 7) -> (2021Q3: 8) -> (2021Q4: 9) -> (2022Q1: 11) -> (2022Q2: 12) -> (2022Q3: 14) -> (2022Q4: 13) -> (2023Q1: 10) -> (2023Q2: 8) -> (2023Q3: 7) -> (2023Q4: 6)
 
-    def __getitem__(self, idx):
-        return self.data[idx], self.labels[idx]
+number of 'System Flaw' risk events quarterly:
+-> (2021Q1: 2) -> (2021Q2: 3) -> (2021Q3: 5) -> (2021Q4: 7) -> (2022Q1: 8) -> (2022Q2: 10) -> (2022Q3: 11) -> (2022Q4: 9) -> (2023Q1: 7) -> (2023Q2: 6) -> (2023Q3: 5) -> (2023Q4: 4)
 
-def setup(rank, world_size):
-    dist.init_process_group("nccl", rank=rank, world_size=world_size)
-    torch.cuda.set_device(rank)
+number of 'Unknown' risk events quarterly:
+-> (2021Q1: 1) -> (2021Q2: 2) -> (2021Q3: 3) -> (2021Q4: 4) -> (2022Q1: 6) -> (2022Q2: 5) -> (2022Q3: 7) -> (2022Q4: 6) -> (2023Q1: 5) -> (2023Q2: 3) -> (2023Q3: 2) -> (2023Q4: 2)
 
-def cleanup():
-    dist.destroy_process_group()
+@@@ Here are the insights from your analyst:
 
-def train(rank, world_size):
-    setup(rank, world_size)
+'Process Flaw' risk events peaked at 12 in Q4 2022, followed by a steady decline through 2023. This suggests that a significant process issue emerged in late 2022, possibly due to operational changes or increased compliance scrutiny. The decline in 2023 may indicate successful remediation efforts or changes in reporting.
 
-    # Dummy model
-    model = nn.Linear(10, 1).to(rank)
-    model = DDP(model, device_ids=[rank])
+'Third Party Error' risk events peaked at 10 in Q1 2022 but then declined steadily, reaching a stable low by the end of 2023. This trend suggests that external vendor or service provider issues were more prominent in early 2022, potentially due to disruptions in supply chains or system integrations. The consistent decline afterward may indicate stronger oversight or improved vendor management practices.
 
-    # Loss and optimizer
-    criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+'Associate Error' events rose steadily, peaking at 14 in Q3 2022, before declining through 2023. The increase in 2022 could be attributed to training gaps, high turnover, or process complexity. The drop in 2023 might be a result of targeted interventions, such as improved training programs, better documentation, or process automation.
 
-    # Metrics with DDP support
-    metrics = torchmetrics.MetricCollection({
-        "accuracy": torchmetrics.Accuracy(task="binary", sync_on_compute=True),
-        "precision": torchmetrics.Precision(task="binary", sync_on_compute=True),
-        "recall": torchmetrics.Recall(task="binary", sync_on_compute=True),
-        "f1": torchmetrics.F1Score(task="binary", sync_on_compute=True),
-        "f0.5": torchmetrics.FBetaScore(task="binary", beta=0.5, sync_on_compute=True),
-        "auroc": torchmetrics.AUROC(task="binary", sync_on_compute=True),
-        "pr_auc": torchmetrics.AveragePrecision(task="binary", sync_on_compute=True),
-    }).to(rank)
+'System Flaw' risk events showed a gradual increase from 2021, peaking at 11 in Q3 2022, and then declined through 2023. This pattern suggests that system stability became a major concern in 2022, possibly due to upgrades, migrations, or increased system load. The subsequent decline indicates either successful bug fixes, infrastructure improvements, or reduced reporting.
 
-    # DataLoader with DistributedSampler
-    dataset = DummyDataset()
-    sampler = torch.utils.data.distributed.DistributedSampler(dataset, num_replicas=world_size, rank=rank)
-    dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
+'Unknown' risk events fluctuated but did not show a clear trend, peaking at 7 in Q3 2022 before declining. The lack of a distinct pattern suggests that these incidents may be residual categories where root causes were not identified, or they could represent inconsistent reporting. The decline in 2023 could indicate improved classification of incidents or a reduction in truly unknown risks.
 
-    for epoch in range(5):  # Training loop
-        model.train()
-        for batch in dataloader:
-            x, y = batch
-            x, y = x.to(rank), y.to(rank).float()
+@@@ Give your comments:
 
-            optimizer.zero_grad()
-            logits = model(x).squeeze()
-            loss = criterion(logits, y)
-            loss.backward()
-            optimizer.step()
+'Process Flaw' risk events peaked at 12 in Q4 2022, followed by a steady decline through 2023. -> Good! (The peak and trend are correctly identified, and the possible reasons are logical.)
 
-            # Compute metrics
-            preds = torch.sigmoid(logits) > 0.5  # Convert logits to binary predictions
-            metrics.update(preds, y.int())
+'Third Party Error' risk events peaked at 10 in Q1 2022 but then declined steadily, reaching a stable low by the end of 2023. -> Wrong! (The decline was not entirely steady—there was a slight fluctuation before it stabilized.)
 
-        # Gather results across all GPUs
-        dist.barrier()
-        if rank == 0:  # Only print on main process
-            results = metrics.compute()
-            print(f"Epoch {epoch + 1}: {results}")
-            metrics.reset()  # Reset metrics for next epoch
+'Associate Error' events rose steadily, peaking at 14 in Q3 2022, before declining through 2023. -> Good! (The peak and reasoning align with the trend in the data.)
 
-    cleanup()
+'System Flaw' risk events showed a gradual increase from 2021, peaking at 11 in Q3 2022, and then declined through 2023. -> Wrong! (The decline was more abrupt than gradual, making this statement slightly misleading.)
 
-if __name__ == "__main__":
-    world_size = torch.cuda.device_count()
-    torch.multiprocessing.spawn(train, args=(world_size,), nprocs=world_size, join=True)
+'Unknown' risk events fluctuated but did not show a clear trend, peaking at 7 in Q3 2022 before declining. -> Useless! (The statement is too vague—there's no clear insight or actionable takeaway.)
