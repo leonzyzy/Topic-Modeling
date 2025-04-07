@@ -1,6 +1,5 @@
+I’d like to recognize Yifei Wang for being an outstanding teammate and an invaluable partner throughout my onboarding and recent projects. Yifei has played a key role in helping me explore and implement the LitData pipeline, troubleshoot PyTorchJob, and set up a systematized workflow that has made it significantly easier for us to run and manage experiments efficiently.
 
-I’d like to give a big shoutout to my teammate, Anhui Wang, for being an incredible partner during my onboarding and beyond. Anhui has been instrumental in helping me get up to speed with several technical setups, including Homebrew, Spark ETL, Kubeflow Pipelines (KFP), and more. He patiently walked me through running a Spark ETL pipeline using the KFP launcher, which was extremely helpful for the Sequence Assist project.
+His deep technical expertise and willingness to dive into problems with me—whether it's setting up infrastructure, debugging issues, or improving our experimental flow—have made a big impact. I truly appreciate his support, collaboration, and the time he’s invested to help me ramp up quickly.
 
-Beyond that, Anhui has consistently gone above and beyond in answering every technical question I’ve had—whether it’s debugging PyTorchJob, setting up AWS credentials, configuring PVC and data storage, or using Weights & Biases for experiment tracking.
-
-I feel incredibly fortunate to have Anhui as a teammate. His support, knowledge, and willingness to help make a huge difference, and I truly look forward to continuing to work with him in the future.
+I'm very grateful to have Yifei as a teammate and look forward to working with him more in the future!
