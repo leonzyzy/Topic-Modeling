@@ -1,59 +1,54 @@
 import torch
-from torch.utils.data import DataLoader
 
 MAX_LEN = 222
-PAD_VALUE = 0  # for inputs
-PAD_LABEL = -1  # for labels
+PAD_VALUE = 0.0   # input padding
+PAD_LABEL = -1    # label padding
 
 def collate_fn(batch):
-    # Find feature dimension
-    feat_dim = batch[0]['input'].size(-1)
-    
     batch_inputs = []
     batch_labels = []
     attention_masks = []
     label_masks = []
 
-    for sample in batch:
-        input_seq = sample['input']
-        label_seq = sample['label']
-        
-        seq_len = input_seq.size(0)
+    feat_dim = batch[0][0].size(-1)
+
+    for X, y in batch:
+        seq_len = X.size(0)
 
         # Pad input
         if seq_len < MAX_LEN:
             pad_len = MAX_LEN - seq_len
-            padded_input = torch.cat([
-                input_seq,
+            padded_X = torch.cat([
+                X,
                 torch.full((pad_len, feat_dim), PAD_VALUE)
             ], dim=0)
         else:
-            padded_input = input_seq[:MAX_LEN]
+            padded_X = X[:MAX_LEN]
 
         # Pad label
         if seq_len < MAX_LEN:
-            padded_label = torch.cat([
-                label_seq,
-                torch.full((MAX_LEN - seq_len,), PAD_LABEL)
+            padded_y = torch.cat([
+                y,
+                torch.full((MAX_LEN - seq_len,), PAD_LABEL, dtype=y.dtype)
             ])
         else:
-            padded_label = label_seq[:MAX_LEN]
+            padded_y = y[:MAX_LEN]
 
-        # Create attention and label masks
-        attention_mask = torch.zeros(MAX_LEN)
-        attention_mask[:min(seq_len, MAX_LEN)] = 1
+        # Attention mask (1 where input is real)
+        attn_mask = torch.zeros(MAX_LEN)
+        attn_mask[:min(seq_len, MAX_LEN)] = 1
 
-        label_mask = (padded_label != PAD_LABEL).float()
+        # Label mask (1 where label is valid)
+        label_mask = (padded_y != PAD_LABEL).float()
 
-        # Append to batch lists
-        batch_inputs.append(padded_input)
-        batch_labels.append(padded_label)
-        attention_masks.append(attention_mask)
+        batch_inputs.append(padded_X)
+        batch_labels.append(padded_y)
+        attention_masks.append(attn_mask)
         label_masks.append(label_mask)
 
     return {
-        'input': torch.stack(batch_inputs),         # [batch, MAX_LEN, feat_dim]
-        'label': torch.stack(batch_labels),         # [batch, MAX_LEN]
-        'attention_mask': torch.stack(attention_masks),  # [batch, MAX_LEN]
-        'label_mask': torch.stack(label_masks),     # [batch, MAX_LEN]
+        'input': torch.stack(batch_inputs),         # [B, 222, feat_dim]
+        'label': torch.stack(batch_labels),         # [B, 222]
+        'attention_mask': torch.stack(attention_masks),  # [B, 222]
+        'label_mask': torch.stack(label_masks),     # [B, 222]
     }
