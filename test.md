@@ -1,44 +1,21 @@
-## **Sequence Assist – CM Spend Forecasting & Acquisition Risk Modeling**
-
-*Explore the potential of transformer-based architectures to model structured and sequential data for outstanding balance prediction and acquisition risk scoring, potentially supporting credit line increase decisions. Below are my core contributions and outcomes:*
+Great question. Based on your detailed contributions to the **Sequence Assist** project, here are some additional strengths that could be highlighted under the *Competency Strengths Demonstrated* section:
 
 ---
 
-### **Key Results & Business Impact**
+### **Additional Competency Strengths Demonstrated**
 
-* Successfully scaled the **LitData + PyTorchJob training pipeline** I previously developed to both **CM Spend** and **Acquisition Risk** tracks. All model results in this project were produced using this infrastructure—training at this scale would not have been possible without it.
+* **End-to-End Ownership**: Demonstrated the ability to drive complex technical solutions from initial implementation (e.g., training pipeline, DDP integration) through debugging and scalability improvements, ensuring long-term maintainability and usability by the broader team.
 
-* Led a targeted experiment in CM Spend to show that a **1-layer or multi-layer FFN model with non-linear activation function** can **reproduce champion model performance using non-interactive static features only** This deepened our understanding of the role of non-linear models in capturing complex relationships and informs future model simplification strategies.
+* **Innovation & Proactivity**: Took initiative to reach out to external open-source authors (e.g., Fieldy) to resolve licensing blockers, and proactively identified and addressed infrastructure pain points like AWS credential expiration—highlighting a bias toward action and problem-solving beyond assigned scope.
 
-* Replaced inefficient **DataParallel** logic in CM Spend with **Distributed Data Parallel (DDP)** and enabled multi-GPU training via PyTorchJob, significantly improving training speed and iteration time.
+* **Technical Enablement & Mentorship**: Acted as a subject matter expert for LitData, PyTorchJob, Spark ETL, and KFP pipelines, providing **technical guidance and support to teammates** across different workstreams. Helped unblock others and raise the overall technical bar.
 
-* Resolved a critical infrastructure bug by identifying a **LitData AWS credential expiration issue** during long training runs. Collaborated with the team to **monkey-patch the issue**, leading to LitData being internalized as a Capital One package—ensuring stable usage for larger-scale experiments.
+* **Scalability Mindset**: Implemented system-level enhancements (e.g., internalizing LitData, enabling multi-GPU training, PyTorchJob scalability) that improved efficiency not just for this project but also set a **foundation for reuse in future sequence modeling efforts**.
 
-* Contacted the author of **Fieldy Transformer** and successfully got an **Apache license** added to the GitHub repository, allowing legal code adoption. This enabled us to incorporate Fieldy into our modeling pipeline without legal concerns.
+* **Data-Centric Thinking**: Contributed to discussions and architecture decisions around sequence encoders, transformers, and experiment design, all grounded in a solid understanding of the **data modalities and business use cases** (i.e., CM Spend and Acq. Risk).
 
-* Shared the LitData pipeline and experimental framework with **business stakeholders** to support the Sequence Assist roadmap. Presented how the infrastructure works and brainstormed future applications of LitData for sequence modeling.
-
----
-
-### **Competency Strengths Demonstrated**
-
-* **Model Architecture Expertise**: Contributed to model architecture design by sharing and implementing ideas including **raw encoder**, **skip connections**, **sequence outputs**, **iTransformer**, and **Fieldy Transformer**. 
-* **Infrastructure & Debugging Leadership**: Acted as a technical consultant for both the **training pipeline (LitData + PyTorchJob)** and **data pipeline (Spark ETL + KFP)**, assisting colleagues with implementation, debugging, and scalability concerns.
-
-* **Collaboration & Communication**: Worked closely with a large cross-functional team, many for the first time as a new hire. Actively participated in **weekly meetings**, **slide deck preparation**, and **brainstorming sessions** with both technical and business stakeholders—demonstrating collaborative spirit and effective communication.
-
-* **Enablement & Impact Beyond Myself**: Facilitated broader team adoption of new tools and methods—whether by helping debug complex issues or enabling access to external codebases through license resolution.
+* **Business Alignment & Technical Translation**: Communicated technical solutions clearly to non-technical stakeholders, especially during the LitData presentation. Translated infrastructure components into **business-relevant context**, which helped drive alignment and future planning.
 
 ---
 
-### **Competency Growth & Future Opportunities**
-
-* This project provided a rare opportunity to work across both **CM Spend** and **Acquisition Risk** tracks, accelerating my learning of Capital One’s credit risk business and product space.
-
-* By collaborating with many colleagues for the first time, I’ve built new relationships and established a reputation for being reliable, knowledgeable, and collaborative.
-
-* I'm currently working on **integrating Weights & Biases and Git tagging** within the CM Spend KFP repo to improve experiment tracking and reproducibility—an initiative that will benefit future modeling efforts across teams.
-
----
-
-Let me know if you'd like to include metrics, figures, or a summary version for slides.
+Would you like me to add these directly into the write-up or tailor them further for a resume, self-review, or performance documentation?
