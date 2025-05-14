@@ -1,61 +1,44 @@
-Absolutely! Below is your self-evaluation write-up for the **FPF-Occultation** project, following the same structured format as the Risk Assist summary, with three clear sections: **Key Results**, **Competency Strengths**, and **Competency Opportunities**. This version emphasizes the **business impact**, **technical leadership**, and **cross-team value** you brought to the project.
+## **Sequence Assist – CM Spend Forecasting & Acquisition Risk Modeling**
+
+*Explore the potential of transformer-based architectures to model structured and sequential data for outstanding balance prediction and acquisition risk scoring, potentially supporting credit line increase decisions. Below are my core contributions and outcomes:*
 
 ---
 
-## 🔹 **Key Results**
+### **Key Results & Business Impact**
 
-The **FPF-Occultation** project focused on developing a **challenger transformer architecture** for detecting unauthorized payments using sequential signals at the **account ID level**, with the ultimate goal of **minimizing fraud, protecting customer safety, and reducing financial loss** for the company. My contributions were pivotal in transforming the project’s feasibility and outcomes:
+* Successfully scaled the **LitData + PyTorchJob training pipeline** I previously developed to both **CM Spend** and **Acquisition Risk** tracks. All model results in this project were produced using this infrastructure—training at this scale would not have been possible without it.
 
-* Identified and resolved critical data standardization bugs in existing code within my first week of onboarding, highlighting immediate value. I raised the issue, opened a pull request, and corrected the logic, directly improving model training integrity and preventing future errors.
+* Led a targeted experiment in CM Spend to show that a **1-layer or multi-layer FFN model with non-linear activation function** can **reproduce champion model performance using non-interactive static features only** This deepened our understanding of the role of non-linear models in capturing complex relationships and informs future model simplification strategies.
 
-* **Spearheaded the implementation of Genesis’s first streaming training pipeline** using **LitData and PyTorchJob**, enabling large-scale transformer training on massive payment datasets. This addressed a critical gap in our infrastructure that previously limited training to small, local datasets.
+* Replaced inefficient **DataParallel** logic in CM Spend with **Distributed Data Parallel (DDP)** and enabled multi-GPU training via PyTorchJob, significantly improving training speed and iteration time.
 
-* **Achieved a 100x acceleration in training speed** through pipeline optimization, eliminating long wait times and significantly increasing model experimentation throughput.
+* Resolved a critical infrastructure bug by identifying a **LitData AWS credential expiration issue** during long training runs. Collaborated with the team to **monkey-patch the issue**, leading to LitData being internalized as a Capital One package—ensuring stable usage for larger-scale experiments.
 
-* **Delivered full-scale benchmark results** using the complete training dataset, which laid the groundwork for real-world deployment and measurable fraud reduction. The top benchmark score of **0.130** outperformed the existing GBM production model and marked a step-change in fraud detection capability.
+* Contacted the author of **Fieldy Transformer** and successfully got an **Apache license** added to the GitHub repository, allowing legal code adoption. This enabled us to incorporate Fieldy into our modeling pipeline without legal concerns.
 
-* **Innovated novel model architectures** including **sequence-to-sequence** and **skip-connection-based transformers**, which pushed performance further, achieving a new best benchmark of **0.133**.
-
-* **Contributed reusable model code, unit tests, and libraries** to **C1-Bumblebee**, elevating team standards, improving reproducibility, and encouraging cross-project adoption.
-
-* **Scaled the training pipeline across multiple projects within the team**, enabling others to finally train on real, large datasets. This contributed to **broader knowledge of LitData** across fraud and AML (Anti-Money Laundering) teams.
-
-* **Presented the project and its outcomes** to the AML team, facilitating horizontal impact and promoting best practices across business domains.
-
-* **Regularly communicated progress and technical insights** through weekly updates and slide decks, enabling rapid feedback, stakeholder alignment, and efficient iteration with MLEs and business teams.
+* Shared the LitData pipeline and experimental framework with **business stakeholders** to support the Sequence Assist roadmap. Presented how the infrastructure works and brainstormed future applications of LitData for sequence modeling.
 
 ---
 
-## 🔹 **Competency Strengths**
+### **Competency Strengths Demonstrated**
 
-Throughout the FPF-Occultation project, I demonstrated strong competencies in both technical innovation and team collaboration:
+* **Model Architecture Expertise**: Contributed to model architecture design by sharing and implementing ideas including **raw encoder**, **skip connections**, **sequence outputs**, **iTransformer**, and **Fieldy Transformer**. 
+* **Infrastructure & Debugging Leadership**: Acted as a technical consultant for both the **training pipeline (LitData + PyTorchJob)** and **data pipeline (Spark ETL + KFP)**, assisting colleagues with implementation, debugging, and scalability concerns.
 
-* **End-to-End Ownership and Execution**: Initiated and delivered a **critical ML infrastructure project within my first month**, despite the absence of existing frameworks or documentation. This effort created foundational capabilities for large-scale model training at Genesis.
+* **Collaboration & Communication**: Worked closely with a large cross-functional team, many for the first time as a new hire. Actively participated in **weekly meetings**, **slide deck preparation**, and **brainstorming sessions** with both technical and business stakeholders—demonstrating collaborative spirit and effective communication.
 
-* **Advanced ML System Design**: Engineered a robust streaming pipeline that considered **future scalability, data types, GPU utilization, memory optimization, and storage constraints**, ensuring flexibility for downstream projects.
-
-* **Technical Mentorship**: Onboarded and mentored colleagues (Plaksha and Karthik) on LitData and PyTorchJob, empowering them to run multiple transformer experiments, including sequence length ablations and architecture tuning.
-
-* **Cross-Team Collaboration**: Supported **colleagues from the broader fraud DS team** with pipeline troubleshooting and best practices, making the solution a reference across multiple verticals.
-
-* **Strategic Communication**: Built and delivered compelling **business-aligned presentations** that translated complex modeling results into actionable insights for stakeholders in the fraud space.
-
-* **Innovation and Experimentation**: Consistently pushed technical boundaries by proposing and testing new model architectures and optimizations, showing initiative in driving the project's evolution.
+* **Enablement & Impact Beyond Myself**: Facilitated broader team adoption of new tools and methods—whether by helping debug complex issues or enabling access to external codebases through license resolution.
 
 ---
 
-## 🔹 **Competency Opportunities**
+### **Competency Growth & Future Opportunities**
 
-This project provided several growth areas where I was able to expand my impact and capabilities:
+* This project provided a rare opportunity to work across both **CM Spend** and **Acquisition Risk** tracks, accelerating my learning of Capital One’s credit risk business and product space.
 
-* **Technical Leadership at Scale**: While I had experience with model training, this project gave me the opportunity to drive **foundational ML infrastructure**, impacting not just one model but **entire workflows across teams**.
+* By collaborating with many colleagues for the first time, I’ve built new relationships and established a reputation for being reliable, knowledgeable, and collaborative.
 
-* **Internal Navigation & Access Enablement**: Building this pipeline from scratch required **navigating Capital One’s complex internal systems**, obtaining access permissions, and identifying the right internal tools—all of which expanded my organizational knowledge and resourcefulness.
-
-* **Business Alignment in Early Research**: By working closely with stakeholders and regularly presenting progress, I gained deeper insight into **how infrastructure and model performance translate to business value**, particularly in fraud prevention.
-
-* **Cross-Domain Enablement**: Presenting the pipeline to AML and expanding its use across other teams helped strengthen my understanding of **how reusable tools and infrastructure** can maximize ROI and create long-term value.
+* I'm currently working on **integrating Weights & Biases and Git tagging** within the CM Spend KFP repo to improve experiment tracking and reproducibility—an initiative that will benefit future modeling efforts across teams.
 
 ---
 
-If you’d like, I can turn this into a visually clean slide summary or integrate it into a formal performance review template. Let me know how you'd like to proceed!
+Let me know if you'd like to include metrics, figures, or a summary version for slides.
