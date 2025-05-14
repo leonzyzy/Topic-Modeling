@@ -1,45 +1,44 @@
-The FPF-Occultation project focused on developing a challenger transformer architecture for detecting unauthorized payments using sequential signals at the account ID level, with the ultimate goal of minimizing fraud, protecting customer safety, and reducing financial loss for the company. My contributions were pivotal in transforming the project’s feasibility and outcomes:
+🔹 Key Results
+Over the course of the Risk Assist project, I contributed to delivering impactful machine learning solutions that improved risk detection, supported risk mitigation strategies, and streamlined knowledge-sharing. The project centered around mapping unstructured text descriptions of risk events to a structured taxonomy and generating natural language insights from aggregated data tables. Below are the core outcomes:
 
-Spearheaded the implementation of Genesis first streaming training pipeline using LitData and PyTorchJob, enabling large-scale transformer training on massive payment datasets. This addressed a critical gap in our infrastructure that previously limited training to small, local datasets.
+Developed and deployed a few-shot learning approach to predict containment types and risk events, achieving 96% accuracy, which matched stakeholder expectations and is now in model production. This significantly enhances our ability to proactively identify risk containment strategies and supports real-time operational decisions.
 
-Identified and resolved critical data standardization bugs in existing code within my first week of onboarding, highlighting immediate value. I raised the issue, opened a pull request, and corrected the logic, directly improving model training integrity and preventing future errors.
+Introduced and implemented a novel chain-of-thought framework for predicting root cause Level 1 & 2 and containment types. This approach improved prediction accuracy by over 10%, received positive feedback from senior leaders (MVPs, VPs), and established a reusable pattern for future models.
 
-Achieved a 100x acceleration in training speed through pipeline optimization, eliminating long wait times and significantly increasing model experimentation throughput.
+Built a hierarchical taxonomy-based model for root cause Level 1 & 2 classification, which boosted performance from 78%/73% to 89% (Level 1) and 81% (Level 2). The method was presented at the Modeling Analytics Conference (MAC) and received significant attention from senior executives.
 
-Delivered full-scale benchmark results using the complete training dataset, which laid the groundwork for real-world deployment and measurable fraud reduction. The top benchmark score of 0.130 outperformed the existing GBM production model and marked a step-change in fraud detection capability.
+Led insight generation experiments by crafting and testing prompt variants, incorporating stakeholder feedback, and eventually implementing the Reflexion framework. This process improved insight quality and reduced hallucinations in LLM outputs, helping risk managers take informed action faster.
 
-Innovated novel model architectures including sequence-to-sequence and skip-connection-based transformers, which pushed performance further, achieving a new best benchmark of 0.133.
+Engaged weekly with risk managers to refine risk event labeling and improve the classification model, leading to higher model accuracy and better alignment with real-world scenarios.
 
-Contributed reusable model code, unit tests, and libraries to C1-Bumblebee, elevating team standards, improving reproducibility, and encouraging cross-project adoption.
+Consistently delivered updates and presented findings at Risk Assist tech and stakeholder meetings, contributing to timely project milestones and maintaining alignment across technical and business teams.
 
-Scaled the training pipeline across multiple projects within the team, enabling others to finally train on real, large datasets. This contributed to broader knowledge of LitData across fraud and AML (Anti-Money Laundering) teams.
+Participated in white paper writing and review, ensuring regulatory alignment and clear communication of the methodology to model risk officers.
 
-Presented the project and its outcomes to the AML team, facilitating horizontal impact and promoting best practices across business domains.
+Contributed to production readiness, collaborating with MLEs to support model deployment and UI design—gaining hands-on exposure to operational workflows and infrastructure.
 
-Regularly communicated progress and technical insights through weekly updates and slide decks, enabling rapid feedback, stakeholder alignment, and efficient iteration with MLEs and business teams.
+Ideated future roadmap items to extend Risk Assist’s applicability across different risk domains and business strategies, supporting the project’s long-term scalability.
 
 🔹 Competency Strengths
-Throughout the FPF-Occultation project, I demonstrated strong competencies in both technical innovation and team collaboration:
+Throughout this project, I demonstrated several core strengths, especially in technical and collaborative competencies:
 
-End-to-End Ownership and Execution: Initiated and delivered a critical ML pipeline project within my first month, despite the absence of existing frameworks or documentation. This effort created foundational capabilities for large-scale model training at Genesis.
+Technical Excellence: Designed and implemented advanced ML approaches (few-shot learning, hierarchical modeling, chain-of-thought reasoning, prompt engineering, and Reflexion framework). These approaches led to substantial performance gains and were aligned with production-level standards.
 
-Advanced ML System Design: Engineered a robust streaming pipeline that considered future scalability, data types, GPU utilization, memory optimization, and storage constraints, ensuring flexibility for downstream projects.
+Innovation and Thought Leadership: Pioneered techniques like chain-of-thought in the risk domain—used for the first time in this organization—and laid the foundation for scalable, explainable models.
 
-Technical Mentorship: Onboarded and mentored colleagues (Plaksha and Karthik) on LitData and PyTorchJob, empowering them to run multiple transformer experiments, including sequence length ablations and architecture tuning.
+Collaboration and Communication: Maintained a strong cadence of communication with business stakeholders and risk managers, incorporating their feedback into model development and insight evaluation. Regularly presented results in a clear, business-aligned manner.
 
-Cross-Team Collaboration: Supported colleagues from the broader fraud DS team with pipeline troubleshooting and best practices, making the solution a reference across multiple verticals.
+Execution and Delivery: Met all project deadlines, ensured production readiness, and delivered consistent updates with transparent reporting—earning trust from cross-functional teams and leadership.
 
-Strategic Communication: Built and delivered compelling business-aligned presentations that translated complex modeling results into actionable insights for stakeholders in the fraud space.
-
-Innovation and Experimentation: Consistently pushed technical boundaries by proposing and testing new model architectures and optimizations, showing initiative in driving the project's evolution.
+Strategic Thinking: Contributed to model documentation, future roadmap ideation, and stakeholder discussions, showing a forward-looking mindset that aligns model development with broader business goals.
 
 🔹 Competency Opportunities
-This project provided several growth areas where I was able to expand my impact and capabilities:
+As a new hire, this project offered valuable opportunities to strengthen my business acumen and stakeholder alignment:
 
-Technical Leadership at Scale: While I had experience with model training, this project gave me the opportunity to drive foundational ML infrastructure, impacting not just one model but entire workflows across teams.
+Business Context Understanding: While my technical skills were well-established, working closely with risk managers allowed me to deepen my understanding of risk taxonomies, containment strategies, and real-world operational constraints. This improved my ability to design models with practical business utility.
 
-Internal Navigation & Access Enablement: Building this pipeline from scratch required navigating Capital One’s complex internal systems, obtaining access permissions, and identifying the right internal tools—all of which expanded my organizational knowledge and resourcefulness.
+Stakeholder Engagement: By participating in weekly discussions and feedback loops, I improved my ability to frame model results and design decisions in ways that resonate with non-technical stakeholders. This has made me a more effective collaborator across functions.
 
-Business Alignment in Early Research: By working closely with stakeholders and regularly presenting progress, I gained deeper insight into how infrastructure and model performance translate to business value, particularly in fraud prevention.
+End-to-End ML Lifecycle Experience: Supporting MLEs in model deployment and UI design helped me gain exposure to production pipelines, system integration, and user experience considerations—critical skills for scaling AI solutions beyond prototype.
 
-Cross-Domain Enablement: Presenting the pipeline to AML and expanding its use across other teams helped strengthen my understanding of how reusable tools and infrastructure can maximize ROI and create long-term value.
+Model Governance Awareness: Assisting with model documentation and responding to feedback from the model risk officer introduced me to regulatory expectations and governance frameworks that are crucial in financial services.
